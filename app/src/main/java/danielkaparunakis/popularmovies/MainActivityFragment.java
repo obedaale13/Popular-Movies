@@ -36,12 +36,18 @@ public class MainActivityFragment extends Fragment {
 
 
     private final String DEFAULT_API_CALL = "now_playing";
-    private final String POPULARITY = "popular";
-    private final String TOP_RATED = "top_rated";
-    private String currentSortSetting = null;
-    List<String> mMoviePosterPaths = new ArrayList<String>();
+    private final String POPULARITY       = "popular";
+    private final String TOP_RATED        = "top_rated";
+    private final String ORIGINAL_TITLE   = "original_title";
+    private final String POSTER_PATH      = "poster_path";
+    private final String OVERVIEW         = "overview";
+    private final String VOTE_AVERAGE     = "vote_average";
+    private final String RELEASE_DATE     = "release_date";
+    private String currentSortSetting     = null;
+    List<String> mMoviePosterPaths        = new ArrayList<String>();
     ImageAdapter imageAdapter;
     GridView moviePosterGrid;
+    JSONArray movieDataArray;
 
     public MainActivityFragment() {
     }
@@ -96,6 +102,15 @@ public class MainActivityFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent movieDetailActivity = new Intent(getActivity(), MovieDetailActivity.class);
+                try{
+                    movieDetailActivity.putExtra(ORIGINAL_TITLE, movieDataArray.getJSONObject(position).getString("original_title"));
+                    movieDetailActivity.putExtra(POSTER_PATH, movieDataArray.getJSONObject(position).getString("poster_path"));
+                    movieDetailActivity.putExtra(OVERVIEW, movieDataArray.getJSONObject(position).getString("overview"));
+                    movieDetailActivity.putExtra(VOTE_AVERAGE, movieDataArray.getJSONObject(position).getString("vote_average"));
+                    movieDetailActivity.putExtra(RELEASE_DATE, movieDataArray.getJSONObject(position).getString("release_date"));
+                } catch (Exception e) {
+                    Log.e("Error", "JSONArray was null");
+                }
                 startActivity(movieDetailActivity);
             }
         });
@@ -216,7 +231,7 @@ public class MainActivityFragment extends Fragment {
             JSONObject movieDataJSONobj = new JSONObject(JSONRawData);
 
             //pulls resuts array
-            JSONArray movieDataArray = movieDataJSONobj.getJSONArray("results");
+            movieDataArray = movieDataJSONobj.getJSONArray("results");
 
             //pulls poster paths and stores them in an array
             String[] moviePosterPaths = new String[movieDataArray.length()];
