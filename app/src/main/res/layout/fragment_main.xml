@@ -9,8 +9,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/movie_poster_grid"
-        android:horizontalSpacing="0dp"
-        android:verticalSpacing="0dp"
         android:stretchMode="none"
         android:numColumns="auto_fit" />
 

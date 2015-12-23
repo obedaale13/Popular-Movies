@@ -1,14 +1,16 @@
 package danielkaparunakis.popularmovies;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 
+import com.squareup.picasso.Picasso;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -18,11 +20,10 @@ public class ImageAdapter extends BaseAdapter {
 
     private Context mContext;
     private List<String> mMoviePosterPaths = new ArrayList<String>();
-    private final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w185/";
+    private final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w500";
 
-    public ImageAdapter (Context context, List<String> moviePosterPaths) {
+    public ImageAdapter (Context context) {
         mContext = context;
-        Collections.copy(moviePosterPaths, mMoviePosterPaths);
     }
 
     @Override
@@ -30,9 +31,13 @@ public class ImageAdapter extends BaseAdapter {
         return 0;
     }
 
+    public void setmMoviePosterPaths (List<String> MoviePosterPaths) {
+        mMoviePosterPaths = MoviePosterPaths;
+    }
+
     @Override
     public int getCount() {
-        return 5;
+        return mMoviePosterPaths.size();
     }
 
     public Object getItem(int position) {
@@ -43,12 +48,17 @@ public class ImageAdapter extends BaseAdapter {
         ImageView imageView;
         if(convertView == null) {
             imageView = new ImageView(mContext);
-            imageView.setLayoutParams(new GridView.LayoutParams(185, 277));
+            imageView.setLayoutParams(new GridView.LayoutParams(500, 750));
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         } else {
             imageView = (ImageView) convertView;
         }
         //Code will not compile with this line. Says the ArrayList is empty
-//          Picasso.with(mContext).load(POSTER_FULL_PATH + mMoviePosterPaths.get(position).toString()).into(imageView);
+        try {
+            Picasso.with(mContext).load(POSTER_FULL_PATH + mMoviePosterPaths.get(position).toString()).into(imageView);
+        } catch (Exception e) {
+            Log.v("Fawk man", "");
+        }
         return imageView;
 
     }
