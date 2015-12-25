@@ -19,7 +19,7 @@
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/movie_thumbnail"
+            android:id="@+id/image_movie_thumbnail"
             android:layout_marginRight="@dimen/imageview_margin_right"
             android:layout_marginBottom="@dimen/imageview_margin_bottom"
             android:layout_marginLeft="@dimen/imageview_margin_left"/>
@@ -27,23 +27,23 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/overview"
-            android:layout_below="@+id/movie_thumbnail" />
+            android:id="@+id/text_overview"
+            android:layout_below="@+id/image_movie_thumbnail" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/release_date"
-            android:layout_toRightOf="@+id/movie_thumbnail"
+            android:id="@+id/text_release_date"
+            android:layout_toRightOf="@+id/image_movie_thumbnail"
             android:layout_marginTop="@dimen/release_date_margin_top"
             android:layout_marginBottom="@dimen/release_date_margin_bottom"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/vote_average"
-            android:layout_below="@+id/release_date"
-            android:layout_toRightOf="@id/movie_thumbnail"/>
+            android:id="@+id/text_vote_average"
+            android:layout_below="@+id/text_release_date"
+            android:layout_toRightOf="@id/image_movie_thumbnail"/>
 
     </RelativeLayout>
 

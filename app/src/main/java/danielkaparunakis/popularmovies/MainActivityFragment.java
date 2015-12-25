@@ -34,7 +34,7 @@ import java.util.Arrays;
  */
 public class MainActivityFragment extends Fragment {
 
-
+    //Constants & member fields
     private final String DEFAULT_API_CALL            = "now_playing";
     private final String POPULARITY                  = "popular";
     private final String TOP_RATED                   = "top_rated";
@@ -46,26 +46,25 @@ public class MainActivityFragment extends Fragment {
     private final String SAVED_INSTANCE_POSTER_PATHS = "mMoviePosterPaths";
     private final String SAVED_INSTANCE_JSON_RAW     = "JSONRawData";
     private final String LOG_TAG                     = MainActivityFragment.class.getSimpleName();
-    ArrayList<String> mMoviePosterPaths              = new ArrayList<String>();
-    ImageAdapter imageAdapter;
-    GridView moviePosterGrid;
-    JSONArray movieDataArray;
-    JSONObject movieDataJSONobj;
+    private ArrayList<String> mMoviePosterPaths      = new ArrayList<String>();
+    private ImageAdapter mImageAdapter;
+    private JSONArray mMovieDataArray;
+    private JSONObject mMovieDataJSONObj;
 
     public MainActivityFragment() {
     }
 
+    //Override used to save the data in the array list & the JSON Object
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putStringArrayList(SAVED_INSTANCE_POSTER_PATHS, mMoviePosterPaths);
-        outState.putString(SAVED_INSTANCE_JSON_RAW, movieDataJSONobj.toString());
+        outState.putString(SAVED_INSTANCE_JSON_RAW, mMovieDataJSONObj.toString());
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setHasOptionsMenu(true);
     }
 
@@ -74,7 +73,7 @@ public class MainActivityFragment extends Fragment {
 
         // Inflate the menu located in main
         super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.menu_main, menu);
+        inflater.inflate(R.menu.activity_main, menu);
     }
 
     @Override
@@ -95,53 +94,65 @@ public class MainActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         //Inflate fragment when View is created, then stored to be returned at the end of the method
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         //Find the Movie Posters Grid by ID & bind it to the custom-made ImageView adapter
-        moviePosterGrid = (GridView) rootView.findViewById(R.id.movie_poster_grid);
-        moviePosterGrid.setColumnWidth(500);
+        GridView MoviePosterGrid  = (GridView) rootView.findViewById(R.id.movie_poster_grid);
+        MoviePosterGrid.setColumnWidth(500);
         if(Configuration.ORIENTATION_PORTRAIT == getResources().getConfiguration().orientation) {
-            moviePosterGrid.setNumColumns(2);
+            MoviePosterGrid.setNumColumns(2);
         } else {
-            moviePosterGrid.setNumColumns(4);
+            MoviePosterGrid.setNumColumns(4);
         }
-
-
-        imageAdapter = new ImageAdapter(getActivity());
+        mImageAdapter = new ImageAdapter(getActivity());
 
         //Decide how to populate views
         if (savedInstanceState != null) {
+
+            //Populate array with previous instance's data
             mMoviePosterPaths = savedInstanceState.getStringArrayList(SAVED_INSTANCE_POSTER_PATHS);
+
+            //Populate the JSON Object with previous instance's data in case of detail activity launch
             try {
-                movieDataJSONobj = new JSONObject(savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW));
-                movieDataArray = movieDataJSONobj.getJSONArray("results");
-            }
-            catch (JSONException e){
+                mMovieDataJSONObj =
+                        new JSONObject(savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW));
+                mMovieDataArray = mMovieDataJSONObj.getJSONArray("results");
+            } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
             }
-            imageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
-            imageAdapter.notifyDataSetInvalidated();
+
+            //Reset ImageAdapter
+            mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+            mImageAdapter.notifyDataSetInvalidated();
+
         } else {
+
+            //Launch default API call
             new FetchMovieDataTask().execute(DEFAULT_API_CALL);
         }
-        moviePosterGrid.setAdapter(imageAdapter);
+        MoviePosterGrid.setAdapter(mImageAdapter);
 
         //Set onItemClick behavior
-        moviePosterGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        MoviePosterGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent movieDetailActivity = new Intent(getActivity(), MovieDetailActivity.class);
+
+                //Use data currently residing in the JSONArray instead of querying the server again
                 try {
-                    movieDetailActivity.putExtra(ORIGINAL_TITLE, movieDataArray.getJSONObject(position).getString("original_title"));
-                    movieDetailActivity.putExtra(POSTER_PATH, movieDataArray.getJSONObject(position).getString("poster_path"));
-                    movieDetailActivity.putExtra(OVERVIEW, movieDataArray.getJSONObject(position).getString("overview"));
-                    movieDetailActivity.putExtra(VOTE_AVERAGE, movieDataArray.getJSONObject(position).getString("vote_average"));
-                    movieDetailActivity.putExtra(RELEASE_DATE, movieDataArray.getJSONObject(position).getString("release_date"));
-                } catch (Exception e) {
-                    Log.e("Error", "JSONArray was null");
+                    movieDetailActivity.putExtra(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
+                    movieDetailActivity.putExtra(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
+                    movieDetailActivity.putExtra(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
+                    movieDetailActivity.putExtra(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
+                    movieDetailActivity.putExtra(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
+                } catch (JSONException e) {
+                    Log.e(LOG_TAG, e.getMessage(), e);
+                    e.printStackTrace();
                 }
+
                 startActivity(movieDetailActivity);
             }
         });
@@ -157,7 +168,6 @@ public class MainActivityFragment extends Fragment {
         private final String BUILDER_PATH_2 = "movie";
         private final String APIKEY_PARAM = "api_key";
         private final String LOG_TAG = FetchMovieDataTask.class.getSimpleName();
-
 
         @Override
         protected String[] doInBackground(String... params) {
@@ -252,22 +262,22 @@ public class MainActivityFragment extends Fragment {
             //Then update the image adapter
             mMoviePosterPaths.clear();
             mMoviePosterPaths.addAll(Arrays.asList(MoviePosterPaths));
-            imageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
-            imageAdapter.notifyDataSetInvalidated();
+            mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+            mImageAdapter.notifyDataSetInvalidated();
         }
 
         private String[] getMovieDataFromJSONStr(String JSONRawData) throws JSONException {
 
             //Turns raw string data into a JSON object
-            movieDataJSONobj = new JSONObject(JSONRawData);
+            mMovieDataJSONObj = new JSONObject(JSONRawData);
 
             //pulls resuts array
-            movieDataArray = movieDataJSONobj.getJSONArray("results");
+            mMovieDataArray = mMovieDataJSONObj.getJSONArray("results");
 
             //pulls poster paths and stores them in an array
-            String[] moviePosterPaths = new String[movieDataArray.length()];
-            for (int i = 0; i < movieDataArray.length(); i++) {
-                moviePosterPaths[i] = movieDataArray.getJSONObject(i).getString("poster_path");
+            String[] moviePosterPaths = new String[mMovieDataArray.length()];
+            for (int i = 0; i < mMovieDataArray.length(); i++) {
+                moviePosterPaths[i] = mMovieDataArray.getJSONObject(i).getString("poster_path");
             }
             return moviePosterPaths;
 
