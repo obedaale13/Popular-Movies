@@ -1,6 +1,7 @@
 package danielkaparunakis.popularmovies;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -27,7 +28,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -35,28 +35,37 @@ import java.util.List;
 public class MainActivityFragment extends Fragment {
 
 
-    private final String DEFAULT_API_CALL = "now_playing";
-    private final String POPULARITY       = "popular";
-    private final String TOP_RATED        = "top_rated";
-    private final String ORIGINAL_TITLE   = "original_title";
-    private final String POSTER_PATH      = "poster_path";
-    private final String OVERVIEW         = "overview";
-    private final String VOTE_AVERAGE     = "vote_average";
-    private final String RELEASE_DATE     = "release_date";
-    private String currentSortSetting     = null;
-    List<String> mMoviePosterPaths        = new ArrayList<String>();
+    private final String DEFAULT_API_CALL            = "now_playing";
+    private final String POPULARITY                  = "popular";
+    private final String TOP_RATED                   = "top_rated";
+    private final String ORIGINAL_TITLE              = "original_title";
+    private final String POSTER_PATH                 = "poster_path";
+    private final String OVERVIEW                    = "overview";
+    private final String VOTE_AVERAGE                = "vote_average";
+    private final String RELEASE_DATE                = "release_date";
+    private final String SAVED_INSTANCE_POSTER_PATHS = "mMoviePosterPaths";
+    private final String SAVED_INSTANCE_JSON_RAW     = "JSONRawData";
+    private final String LOG_TAG                     = MainActivityFragment.class.getSimpleName();
+    ArrayList<String> mMoviePosterPaths              = new ArrayList<String>();
     ImageAdapter imageAdapter;
     GridView moviePosterGrid;
     JSONArray movieDataArray;
+    JSONObject movieDataJSONobj;
 
     public MainActivityFragment() {
     }
 
-
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArrayList(SAVED_INSTANCE_POSTER_PATHS, mMoviePosterPaths);
+        outState.putString(SAVED_INSTANCE_JSON_RAW, movieDataJSONobj.toString());
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setHasOptionsMenu(true);
     }
 
@@ -89,20 +98,42 @@ public class MainActivityFragment extends Fragment {
         //Inflate fragment when View is created, then stored to be returned at the end of the method
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        //Fetch movie data using API
-        new FetchMovieDataTask().execute(DEFAULT_API_CALL);
-
         //Find the Movie Posters Grid by ID & bind it to the custom-made ImageView adapter
         moviePosterGrid = (GridView) rootView.findViewById(R.id.movie_poster_grid);
         moviePosterGrid.setColumnWidth(500);
-        moviePosterGrid.setNumColumns(2);
+        if(Configuration.ORIENTATION_PORTRAIT == getResources().getConfiguration().orientation) {
+            moviePosterGrid.setNumColumns(2);
+        } else {
+            moviePosterGrid.setNumColumns(4);
+        }
+
+
         imageAdapter = new ImageAdapter(getActivity());
+
+        //Decide how to populate views
+        if (savedInstanceState != null) {
+            mMoviePosterPaths = savedInstanceState.getStringArrayList(SAVED_INSTANCE_POSTER_PATHS);
+            try {
+                movieDataJSONobj = new JSONObject(savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW));
+                movieDataArray = movieDataJSONobj.getJSONArray("results");
+            }
+            catch (JSONException e){
+                Log.e(LOG_TAG, e.getMessage(), e);
+                e.printStackTrace();
+            }
+            imageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+            imageAdapter.notifyDataSetInvalidated();
+        } else {
+            new FetchMovieDataTask().execute(DEFAULT_API_CALL);
+        }
         moviePosterGrid.setAdapter(imageAdapter);
+
+        //Set onItemClick behavior
         moviePosterGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent movieDetailActivity = new Intent(getActivity(), MovieDetailActivity.class);
-                try{
+                try {
                     movieDetailActivity.putExtra(ORIGINAL_TITLE, movieDataArray.getJSONObject(position).getString("original_title"));
                     movieDetailActivity.putExtra(POSTER_PATH, movieDataArray.getJSONObject(position).getString("poster_path"));
                     movieDetailActivity.putExtra(OVERVIEW, movieDataArray.getJSONObject(position).getString("overview"));
@@ -228,7 +259,7 @@ public class MainActivityFragment extends Fragment {
         private String[] getMovieDataFromJSONStr(String JSONRawData) throws JSONException {
 
             //Turns raw string data into a JSON object
-            JSONObject movieDataJSONobj = new JSONObject(JSONRawData);
+            movieDataJSONobj = new JSONObject(JSONRawData);
 
             //pulls resuts array
             movieDataArray = movieDataJSONobj.getJSONArray("results");
