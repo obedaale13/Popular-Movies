@@ -61,10 +61,13 @@ public class ImageAdapter extends BaseAdapter {
             imageView = (ImageView) convertView;
         }
 
-        //Use of Picasso library to load, cache & display images
-        Picasso.with(mContext)
-                .load(POSTER_FULL_PATH + mMoviePosterPaths.get(position).toString())
-                .into(imageView);
+        //Use of Picasso library to load, cache & display images, only works if the path is not null
+        //which the API returns sometimes
+        if (!mMoviePosterPaths.get(position).equals(null)){
+            Picasso.with(mContext)
+                    .load(POSTER_FULL_PATH + mMoviePosterPaths.get(position))
+                    .into(imageView);
+        }
 
         return imageView;
 

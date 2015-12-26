@@ -59,7 +59,10 @@ public class MainActivityFragment extends Fragment {
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putStringArrayList(SAVED_INSTANCE_POSTER_PATHS, mMoviePosterPaths);
-        outState.putString(SAVED_INSTANCE_JSON_RAW, mMovieDataJSONObj.toString());
+        if (mMovieDataJSONObj != null){
+            outState.putString(SAVED_INSTANCE_JSON_RAW, mMovieDataJSONObj.toString());
+        }
+
     }
 
     @Override
@@ -268,8 +271,12 @@ public class MainActivityFragment extends Fragment {
 
         private String[] getMovieDataFromJSONStr(String JSONRawData) throws JSONException {
 
-            //Turns raw string data into a JSON object
-            mMovieDataJSONObj = new JSONObject(JSONRawData);
+            if (JSONRawData != null) {
+                //Turns raw string data into a JSON object
+                mMovieDataJSONObj = new JSONObject(JSONRawData);
+            } else {
+                return new String[0];
+            }
 
             //pulls resuts array
             mMovieDataArray = mMovieDataJSONObj.getJSONArray("results");
