@@ -3,5 +3,7 @@
 
     <string name="action_sort_by_popularity">Sort by Popularity</string>
     <string name="action_sort_by_highest_rated">Sort by Highest Rated</string>
+    <string name="action_sort_by_favorite_movies">Sort by Favorite Movies</string>
+    <string name="button_label_mark_as_favorite">Mark as Favorite</string>
 
 </resources>

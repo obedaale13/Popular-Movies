@@ -45,6 +45,18 @@
             android:layout_below="@+id/text_release_date"
             android:layout_toRightOf="@id/image_movie_thumbnail"/>
 
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/checkbox_mark_as_favorite"
+            android:text="@string/button_label_mark_as_favorite"
+            android:onClick="onFavoriteClicked"
+            android:layout_below="@+id/text_vote_average"
+            android:layout_toRightOf="@id/image_movie_thumbnail"
+            android:layout_alignLeft="@+id/text_vote_average"/>
+
+
+
     </RelativeLayout>
 
 </ScrollView>

@@ -9,6 +9,7 @@ import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class ImageAdapter extends BaseAdapter {
     private Context mContext;
     private List<String> mMoviePosterPaths = new ArrayList<String>();
     private final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w500";
+    private boolean mIsLocal = false;
 
     //Contructor
     public ImageAdapter (Context context) {
@@ -36,6 +38,10 @@ public class ImageAdapter extends BaseAdapter {
     //Method used to update data in MoviePosterPath array
     public void setmMoviePosterPaths (List<String> MoviePosterPaths) {
         mMoviePosterPaths = MoviePosterPaths;
+    }
+
+    public void setLocalFileFlag(boolean isLocal) {
+        mIsLocal = isLocal;
     }
 
     //Override used to get count of total views to display
@@ -64,9 +70,15 @@ public class ImageAdapter extends BaseAdapter {
         //Use of Picasso library to load, cache & display images, only works if the path is not null
         //which the API returns sometimes
         if (!mMoviePosterPaths.get(position).equals(null)){
-            Picasso.with(mContext)
-                    .load(POSTER_FULL_PATH + mMoviePosterPaths.get(position))
-                    .into(imageView);
+            if (mIsLocal){
+                Picasso.with(mContext)
+                        .load(new File(mMoviePosterPaths.get(position)))
+                        .into(imageView);
+            } else {
+                Picasso.with(mContext)
+                        .load(POSTER_FULL_PATH + mMoviePosterPaths.get(position))
+                        .into(imageView);
+            }
         }
 
         return imageView;

@@ -1,10 +1,13 @@
 package danielkaparunakis.popularmovies;
 
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -38,15 +41,19 @@ public class MainActivityFragment extends Fragment {
     private final String DEFAULT_API_CALL            = "now_playing";
     private final String POPULARITY                  = "popular";
     private final String TOP_RATED                   = "top_rated";
+    private final String MOVIE_ID                    = "id";
     private final String ORIGINAL_TITLE              = "original_title";
     private final String POSTER_PATH                 = "poster_path";
     private final String OVERVIEW                    = "overview";
     private final String VOTE_AVERAGE                = "vote_average";
     private final String RELEASE_DATE                = "release_date";
     private final String SAVED_INSTANCE_POSTER_PATHS = "mMoviePosterPaths";
+    private final String IS_FAVORITE_MODE            = "isFavoriteMode";
     private final String SAVED_INSTANCE_JSON_RAW     = "JSONRawData";
+    private boolean isFavoriteMode                   = false;
     private final String LOG_TAG                     = MainActivityFragment.class.getSimpleName();
     private ArrayList<String> mMoviePosterPaths      = new ArrayList<String>();
+    private Cursor cursor;
     private ImageAdapter mImageAdapter;
     private JSONArray mMovieDataArray;
     private JSONObject mMovieDataJSONObj;
@@ -58,11 +65,13 @@ public class MainActivityFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putStringArrayList(SAVED_INSTANCE_POSTER_PATHS, mMoviePosterPaths);
+        if(mMoviePosterPaths != null){
+            outState.putStringArrayList(SAVED_INSTANCE_POSTER_PATHS, mMoviePosterPaths);
+        }
         if (mMovieDataJSONObj != null){
             outState.putString(SAVED_INSTANCE_JSON_RAW, mMovieDataJSONObj.toString());
         }
-
+        outState.putBoolean(IS_FAVORITE_MODE, isFavoriteMode);
     }
 
     @Override
@@ -85,10 +94,21 @@ public class MainActivityFragment extends Fragment {
         // Setting used to determine the sort order of the movies
         switch (item.getItemId()) {
             case R.id.action_sort_by_popularity:
+                mImageAdapter.setLocalFileFlag(false);
                 new FetchMovieDataTask().execute(POPULARITY);
+                isFavoriteMode = false;
                 return true;
             case R.id.action_sort_by_highest_rated:
+                mImageAdapter.setLocalFileFlag(false);
                 new FetchMovieDataTask().execute(TOP_RATED);
+                isFavoriteMode = false;
+                return true;
+            case R.id.action_sort_by_favorites_movies:
+                mImageAdapter.setLocalFileFlag(true);
+                favoriteMovies();
+                isFavoriteMode = true;
+                mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+                mImageAdapter.notifyDataSetInvalidated();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -96,7 +116,7 @@ public class MainActivityFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+                             final Bundle savedInstanceState) {
 
         //Inflate fragment when View is created, then stored to be returned at the end of the method
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
@@ -113,28 +133,48 @@ public class MainActivityFragment extends Fragment {
 
         //Decide how to populate views
         if (savedInstanceState != null) {
-
             //Populate array with previous instance's data
             mMoviePosterPaths = savedInstanceState.getStringArrayList(SAVED_INSTANCE_POSTER_PATHS);
 
             //Populate the JSON Object with previous instance's data in case of detail activity launch
-            try {
-                mMovieDataJSONObj =
-                        new JSONObject(savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW));
-                mMovieDataArray = mMovieDataJSONObj.getJSONArray("results");
-            } catch (JSONException e) {
-                Log.e(LOG_TAG, e.getMessage(), e);
-                e.printStackTrace();
+
+            if (savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW) != null && !savedInstanceState.getBoolean(IS_FAVORITE_MODE)){
+                try {
+                    mMovieDataJSONObj =
+                            new JSONObject(savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW));
+                    mMovieDataArray = mMovieDataJSONObj.getJSONArray("results");
+                } catch (JSONException e) {
+                    Log.e(LOG_TAG, e.getMessage(), e);
+                    e.printStackTrace();
+                }
+                //Reset ImageAdapter
+                mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+                mImageAdapter.notifyDataSetInvalidated();
+            } else {
+                mImageAdapter.setLocalFileFlag(true);
+                isFavoriteMode = true;
+                //Reset ImageAdapter
+                mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+                mImageAdapter.notifyDataSetInvalidated();
             }
 
-            //Reset ImageAdapter
-            mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
-            mImageAdapter.notifyDataSetInvalidated();
-
-        } else {
-
+        } else if (ConnectivityStatus.isOnline()){
             //Launch default API call
             new FetchMovieDataTask().execute(DEFAULT_API_CALL);
+            isFavoriteMode = false;
+        } else {
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mImageAdapter.setLocalFileFlag(true);
+                    favoriteMovies();
+                    isFavoriteMode = true;
+                    mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+                    mImageAdapter.notifyDataSetInvalidated();
+                }
+            }, 550);
+
         }
         MoviePosterGrid.setAdapter(mImageAdapter);
 
@@ -144,16 +184,35 @@ public class MainActivityFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent movieDetailActivity = new Intent(getActivity(), MovieDetailActivity.class);
 
-                //Use data currently residing in the JSONArray instead of querying the server again
-                try {
-                    movieDetailActivity.putExtra(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
-                    movieDetailActivity.putExtra(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
-                    movieDetailActivity.putExtra(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
-                    movieDetailActivity.putExtra(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
-                    movieDetailActivity.putExtra(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
-                } catch (JSONException e) {
-                    Log.e(LOG_TAG, e.getMessage(), e);
-                    e.printStackTrace();
+                if(isFavoriteMode && savedInstanceState == null){
+                    cursor.moveToPosition(position);
+                    movieDetailActivity.putExtra(MOVIE_ID, cursor.getString(1));
+                    movieDetailActivity.putExtra(IS_FAVORITE_MODE, isFavoriteMode);
+                } else if(isFavoriteMode && savedInstanceState != null){
+                    ContentResolver resolver = getActivity().getContentResolver();
+                    cursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+                            new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID
+                                    , MovieContract.MovieTable.COLUMN_POSTER_PATH},
+                            MovieContract.MovieTable.COLUMN_POSTER_PATH + " = ?",
+                            new String[]{mMoviePosterPaths.get(position)},
+                            null);
+                    cursor.moveToFirst();
+                    movieDetailActivity.putExtra(MOVIE_ID, cursor.getString(1));
+                    movieDetailActivity.putExtra(IS_FAVORITE_MODE, isFavoriteMode);
+                } else {
+                    //Use data currently residing in the JSONArray instead of querying the server again
+                    try {
+                        movieDetailActivity.putExtra(MOVIE_ID, mMovieDataArray.getJSONObject(position).getString("id"));
+                        movieDetailActivity.putExtra(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
+                        movieDetailActivity.putExtra(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
+                        movieDetailActivity.putExtra(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
+                        movieDetailActivity.putExtra(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
+                        movieDetailActivity.putExtra(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
+                        movieDetailActivity.putExtra(IS_FAVORITE_MODE, isFavoriteMode);
+                    } catch (JSONException e) {
+                        Log.e(LOG_TAG, e.getMessage(), e);
+                        e.printStackTrace();
+                    }
                 }
 
                 startActivity(movieDetailActivity);
@@ -161,6 +220,23 @@ public class MainActivityFragment extends Fragment {
         });
 
         return rootView;
+    }
+
+    private void favoriteMovies(){
+        ContentResolver resolver = getActivity().getContentResolver();
+
+        cursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+                new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID, MovieContract.MovieTable.COLUMN_POSTER_PATH},
+                null,
+                null,
+                null);
+        String[] moviePosterPaths = new String[cursor.getCount()];
+        for (int i = 0; i < cursor.getCount(); i++) {
+            cursor.moveToNext();
+            moviePosterPaths[i] = cursor.getString(2);
+        }
+        mMoviePosterPaths.clear();
+        mMoviePosterPaths.addAll(Arrays.asList(moviePosterPaths));
     }
 
     public class FetchMovieDataTask extends AsyncTask<String, Void, String[]> {
@@ -190,7 +266,7 @@ public class MainActivityFragment extends Fragment {
                     .appendPath(BUILDER_PATH_1)
                     .appendPath(BUILDER_PATH_2)
                     .appendPath(params[0])
-                    .appendQueryParameter(APIKEY_PARAM, ""); //Your API KEY goes here
+                    .appendQueryParameter(APIKEY_PARAM, "***REMOVED***"); //Your API KEY goes here
 
             //Built URL stored in a string
             String builtURL = builder.build().toString();
@@ -263,10 +339,12 @@ public class MainActivityFragment extends Fragment {
 
             //Take data received from the execution of Asynctask and update an ArrayList with it
             //Then update the image adapter
-            mMoviePosterPaths.clear();
-            mMoviePosterPaths.addAll(Arrays.asList(MoviePosterPaths));
-            mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
-            mImageAdapter.notifyDataSetInvalidated();
+            if (MoviePosterPaths != null){
+                mMoviePosterPaths.clear();
+                mMoviePosterPaths.addAll(Arrays.asList(MoviePosterPaths));
+                mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+                mImageAdapter.notifyDataSetInvalidated();
+            }
         }
 
         private String[] getMovieDataFromJSONStr(String JSONRawData) throws JSONException {
@@ -275,7 +353,7 @@ public class MainActivityFragment extends Fragment {
                 //Turns raw string data into a JSON object
                 mMovieDataJSONObj = new JSONObject(JSONRawData);
             } else {
-                return new String[0];
+                return null;
             }
 
             //pulls resuts array
