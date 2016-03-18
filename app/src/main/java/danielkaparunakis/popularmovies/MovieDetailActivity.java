@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -18,12 +20,23 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 public class MovieDetailActivity extends AppCompatActivity {
@@ -41,12 +54,7 @@ public class MovieDetailActivity extends AppCompatActivity {
     private final String LOG_TAG          = MovieDetailActivity.class.getSimpleName();
     ImageView movieThumbnail;
     private Cursor cursor;
-    private String mOriginalTitle;
-    private String mPosterPath;
-    private String mOverview;
-    private String mReleaseDate;
-    private String mVoteAverage;
-    private boolean isFavorite;
+    private ArrayList<String> movieTrailerReviewDataAL = new ArrayList<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +63,13 @@ public class MovieDetailActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        String mOriginalTitle;
+        String mPosterPath;
+        String mOverview;
+        String mReleaseDate;
+        String mVoteAverage;
+        boolean isFavorite;
 
         //Receive intent data
         Intent movieDetailActivity = getIntent();
@@ -84,6 +99,7 @@ public class MovieDetailActivity extends AppCompatActivity {
             mOverview = movieDetailActivity.getStringExtra(OVERVIEW);
             mReleaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
             mVoteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE);
+            new FetchDetailMovieData().execute(movieDetailActivity.getStringExtra(MOVIE_ID));
         }
 
         getSupportActionBar().setTitle(mOriginalTitle);
@@ -184,6 +200,151 @@ public class MovieDetailActivity extends AppCompatActivity {
                     new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)});
         }
 
+    }
+
+    public void onYoutubeClicked(View view){
+        Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://www.youtube.com/watch?v=" + movieTrailerReviewDataAL.get(0)));
+        startActivity(youtubeIntent);
+    }
+
+    public class FetchDetailMovieData extends AsyncTask<String, Void, String[]> {
+
+        private final String BUILDER_SCHEME = "http";
+        private final String BUILDER_AUTHORITY = "api.themoviedb.org";
+        private final String BUILDER_PATH_1 = "3";
+        private final String BUILDER_PATH_2 = "movie";
+        private final String APIKEY_PARAM = "api_key";
+        private final String TRAILERS_REVIEWS = "append_to_response";
+        private final String LOG_TAG = FetchDetailMovieData.class.getSimpleName();
+
+        @Override
+        protected String[] doInBackground(String... params) {
+
+            // These two need to be declared outside the try/catch
+            // so that they can be closed in the finally block.
+            HttpURLConnection httpURLConnection = null;
+            BufferedReader bufferedReader = null;
+
+            // Will contain the raw JSON response as a string.
+            String movieDataJSONStr = null;
+
+            //API call URL builder
+            Uri.Builder builder = new Uri.Builder();
+            builder.scheme(BUILDER_SCHEME)
+                    .authority(BUILDER_AUTHORITY)
+                    .appendPath(BUILDER_PATH_1)
+                    .appendPath(BUILDER_PATH_2)
+                    .appendPath(params[0])
+                    .appendQueryParameter(APIKEY_PARAM, "***REMOVED***")
+                    .appendQueryParameter(TRAILERS_REVIEWS, "reviews,trailers");
+
+            //Built URL stored in a string
+            String builtURL = builder.build().toString();
+
+            try {
+
+                // Construct the URL for the API query
+                URL url = new URL(builtURL);
+                // Create the request to TheMovieDB, and open the connection
+                httpURLConnection = (HttpURLConnection) url.openConnection();
+                httpURLConnection.setRequestMethod("GET");
+                httpURLConnection.connect();
+
+                //Read the input stream into a String
+                InputStream inputStream = httpURLConnection.getInputStream();
+                StringBuffer stringBuffer = new StringBuffer();
+                if (inputStream == null) {
+                    //no data obtained, nothing to do
+                    movieDataJSONStr = null;
+                }
+
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+                String line;
+
+                while((line = bufferedReader.readLine()) != null) {
+                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
+                    // But it does make debugging a *lot* easier if you print out the completed
+                    // buffer for debugging.
+                    stringBuffer.append(line + "\n");
+                }
+
+                if (stringBuffer.length() == 0) {
+                    //string was empty
+                    movieDataJSONStr = null;
+                }
+                movieDataJSONStr = stringBuffer.toString();
+
+            } catch (IOException e) {
+                Log.e(LOG_TAG, "Error ", e);
+                // If the code didn't successfully get the movie data, there's no point in attempting
+                // to parse it.
+                movieDataJSONStr = null;
+            } finally {
+                if (httpURLConnection != null) {
+                    httpURLConnection.disconnect();
+                }
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (final IOException e) {
+                        Log.e(LOG_TAG, "Error closing stream", e);
+                    }
+                }
+            }
+
+            //Attempt to parse data
+            try {
+                return getMovieDataFromJSONStr(movieDataJSONStr);
+            }
+            catch (JSONException e){
+                Log.e(LOG_TAG, e.getMessage(), e);
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String[] movieTrailerReviewData) {
+            super.onPostExecute(movieTrailerReviewData);
+
+            //Take data received from the execution of Asynctask and update an ArrayList with it
+            //Then update the image adapter
+            if (movieTrailerReviewData != null){
+                movieTrailerReviewDataAL.clear();
+                movieTrailerReviewDataAL.addAll(Arrays.asList(movieTrailerReviewData));
+                for (int i = 0; i < movieTrailerReviewDataAL.size(); i++){
+                    Log.v("TACOS", movieTrailerReviewDataAL.get(i));
+                }
+            }
+            TextView reviews = (TextView) findViewById(R.id.textview_review);
+            reviews.setText(movieTrailerReviewDataAL.get(1) + "\n\n" + movieTrailerReviewDataAL.get(2));
+        }
+
+        private String[] getMovieDataFromJSONStr(String JSONRawData) throws JSONException {
+
+            JSONObject movieDetailJObj;
+            if (JSONRawData != null) {
+                //Turns raw string data into a JSON object
+                movieDetailJObj = new JSONObject(JSONRawData);
+            } else {
+                return null;
+            }
+
+            //pulls resuts array
+            JSONArray movieTrailerData = movieDetailJObj.getJSONObject("trailers").getJSONArray("youtube");
+            JSONArray movieReviewData = movieDetailJObj.getJSONObject("reviews").getJSONArray("results");
+            //pulls poster paths and stores them in an array
+            String[] movieTrailerReviewData = new String[movieTrailerData.length() + movieReviewData.length()];
+            for (int i = 0; i < movieTrailerData.length(); i++) {
+                movieTrailerReviewData[i] = movieTrailerData.getJSONObject(i).getString("source");
+            }
+            for (int i = 0; i < movieReviewData.length(); i++) {
+                movieTrailerReviewData[i + movieTrailerData.length()] = movieReviewData.getJSONObject(i).getString("content");
+            }
+            return movieTrailerReviewData;
+
+        }
     }
 
 }
