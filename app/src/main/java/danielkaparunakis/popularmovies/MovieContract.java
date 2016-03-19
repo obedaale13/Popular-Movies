@@ -34,6 +34,14 @@ public class MovieContract {
 
         public static final String COLUMN_RELEASE_DATE = "release_date";
 
+        public static final String COLUMN_TRAILER = "trailers";
+
+        public static final String COLUMN_REVIEW_AUTHOR = "author";
+
+        public static final String COLUMN_REVIEW = "reviews";
+
+        public static final String COLUMN_FAVORITE = "favorite";
+
         public static final String SORT_ORDER_DEFAULT = COLUMN_MOVIE_ID + " ASC";
 
         public static final String[] projection = new String[]{
@@ -43,7 +51,11 @@ public class MovieContract {
                 COLUMN_POSTER_PATH,
                 COLUMN_OVERVIEW,
                 COLUMN_VOTE_AVERAGE,
-                COLUMN_RELEASE_DATE
+                COLUMN_RELEASE_DATE,
+                COLUMN_TRAILER,
+                COLUMN_REVIEW_AUTHOR,
+                COLUMN_REVIEW,
+                COLUMN_FAVORITE
         };
     }
 }

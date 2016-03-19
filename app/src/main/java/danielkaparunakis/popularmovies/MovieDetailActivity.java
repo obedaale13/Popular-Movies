@@ -17,6 +17,7 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -87,6 +88,7 @@ public class MovieDetailActivity extends AppCompatActivity {
             mOverview = cursor.getString(4);
             mReleaseDate = cursor.getString(6);
             mVoteAverage = cursor.getString(5);
+
         } else {
             cursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
                     new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID, MovieContract.MovieTable.COLUMN_POSTER_PATH},
@@ -142,6 +144,16 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         CheckBox favoriteCheckbox = (CheckBox) findViewById(R.id.checkbox_mark_as_favorite);
         favoriteCheckbox.setChecked(isFavorite);
+
+        if(movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)) {
+            TextView reviews = (TextView) findViewById(R.id.textview_review);
+
+            if(cursor.getString(8) != null) {
+                reviews.setText("By " + cursor.getString(8) + "\n\n" + cursor.getString(9));
+            } else {
+                reviews.setText("No reviews available");
+            }
+        }
     }
 
     private String getValidFileName(String invalidName){
@@ -186,6 +198,14 @@ public class MovieDetailActivity extends AppCompatActivity {
                     movieDetailActivity.getStringExtra((VOTE_AVERAGE)));
             contentValues.put(MovieContract.MovieTable.COLUMN_RELEASE_DATE,
                     movieDetailActivity.getStringExtra((RELEASE_DATE)));
+            contentValues.put(MovieContract.MovieTable.COLUMN_TRAILER,
+                    movieTrailerReviewDataAL.get(0));
+            contentValues.put(MovieContract.MovieTable.COLUMN_REVIEW_AUTHOR,
+                    movieTrailerReviewDataAL.get(1));
+            contentValues.put(MovieContract.MovieTable.COLUMN_REVIEW,
+                    movieTrailerReviewDataAL.get(2));
+            contentValues.put(MovieContract.MovieTable.COLUMN_FAVORITE,
+                    1);
             resolver.insert(MovieContract.MovieTable.CONTENT_URI, contentValues);
         } else {
             if (movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)){
@@ -202,10 +222,21 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     }
 
-    public void onYoutubeClicked(View view){
-        Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://www.youtube.com/watch?v=" + movieTrailerReviewDataAL.get(0)));
-        startActivity(youtubeIntent);
+    public void onYoutubeClicked(View view) {
+        Intent movieDetailActivity = getIntent();
+
+        if (!movieTrailerReviewDataAL.isEmpty()) {
+            Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://www.youtube.com/watch?v=" + movieTrailerReviewDataAL.get(0)));
+            startActivity(youtubeIntent);
+        } else if (movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)) {
+            Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://www.youtube.com/watch?v=" + cursor.getString(7)));
+            startActivity(youtubeIntent);
+        } else {
+            Toast.makeText(this, "No trailers available", Toast.LENGTH_LONG).show();
+        }
+
     }
 
     public class FetchDetailMovieData extends AsyncTask<String, Void, String[]> {
@@ -313,37 +344,47 @@ public class MovieDetailActivity extends AppCompatActivity {
             if (movieTrailerReviewData != null){
                 movieTrailerReviewDataAL.clear();
                 movieTrailerReviewDataAL.addAll(Arrays.asList(movieTrailerReviewData));
-                for (int i = 0; i < movieTrailerReviewDataAL.size(); i++){
-                    Log.v("TACOS", movieTrailerReviewDataAL.get(i));
-                }
             }
             TextView reviews = (TextView) findViewById(R.id.textview_review);
-            reviews.setText(movieTrailerReviewDataAL.get(1) + "\n\n" + movieTrailerReviewDataAL.get(2));
+
+            if(movieTrailerReviewDataAL.get(1) != null) {
+                reviews.setText("By " + movieTrailerReviewDataAL.get(1) + "\n\n" + movieTrailerReviewDataAL.get(2));
+            } else {
+                reviews.setText("No reviews available");
+            }
+
         }
 
         private String[] getMovieDataFromJSONStr(String JSONRawData) throws JSONException {
 
             JSONObject movieDetailJObj;
+            String[] extractedMovieTrailerData =  new String[3];
+
             if (JSONRawData != null) {
                 //Turns raw string data into a JSON object
                 movieDetailJObj = new JSONObject(JSONRawData);
             } else {
                 return null;
             }
-
             //pulls resuts array
-            JSONArray movieTrailerData = movieDetailJObj.getJSONObject("trailers").getJSONArray("youtube");
-            JSONArray movieReviewData = movieDetailJObj.getJSONObject("reviews").getJSONArray("results");
-            //pulls poster paths and stores them in an array
-            String[] movieTrailerReviewData = new String[movieTrailerData.length() + movieReviewData.length()];
-            for (int i = 0; i < movieTrailerData.length(); i++) {
-                movieTrailerReviewData[i] = movieTrailerData.getJSONObject(i).getString("source");
-            }
-            for (int i = 0; i < movieReviewData.length(); i++) {
-                movieTrailerReviewData[i + movieTrailerData.length()] = movieReviewData.getJSONObject(i).getString("content");
-            }
-            return movieTrailerReviewData;
 
+            JSONArray movieTrailerData = movieDetailJObj.getJSONObject("trailers").getJSONArray("youtube");
+            if (!movieTrailerData.isNull(0)) {
+                extractedMovieTrailerData[0] = movieTrailerData.getJSONObject(0).getString("source");
+            } else {
+                extractedMovieTrailerData[0] = null;
+            }
+            JSONArray movieReviewData = movieDetailJObj.getJSONObject("reviews").getJSONArray("results");
+            if (!movieReviewData.isNull(0)) {
+                extractedMovieTrailerData[1] = movieReviewData.getJSONObject(0).getString("author");
+                extractedMovieTrailerData[2] = movieReviewData.getJSONObject(0).getString("content");
+            } else {
+                extractedMovieTrailerData[1] = null;
+                extractedMovieTrailerData[2] = null;
+            }
+
+            //pulls poster paths and stores them in an array
+            return extractedMovieTrailerData;
         }
     }
 

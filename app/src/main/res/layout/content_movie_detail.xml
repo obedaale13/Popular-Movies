@@ -104,12 +104,7 @@
             android:id="@+id/textview_review"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/textview_reviews_label"
-            android:text="nomames"/>
-
-
-
-
+            android:layout_below="@+id/textview_reviews_label" />
 
     </RelativeLayout>
 
