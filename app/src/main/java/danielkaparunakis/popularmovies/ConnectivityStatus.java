@@ -11,7 +11,7 @@ import android.support.v4.net.ConnectivityManagerCompat;
 public class ConnectivityStatus {
 
     public static boolean isOnline() {
-        ConnectivityManager cm = (ConnectivityManager) ApplicationContextUtility.getAppContext()
+        ConnectivityManager cm = (ConnectivityManager) ApplicationContextGetter.getAppContext()
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) {
             return false;
@@ -22,13 +22,13 @@ public class ConnectivityStatus {
     }
 
     public static boolean isConnectionMetered() {
-        ConnectivityManager cm = (ConnectivityManager) ApplicationContextUtility.getAppContext()
+        ConnectivityManager cm = (ConnectivityManager) ApplicationContextGetter.getAppContext()
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         return ConnectivityManagerCompat.isActiveNetworkMetered(cm);
     }
 
     public static boolean isNetworkGood() {
-        ConnectivityManager cm = (ConnectivityManager) ApplicationContextUtility.getAppContext()
+        ConnectivityManager cm = (ConnectivityManager) ApplicationContextGetter.getAppContext()
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) {
             return false;

@@ -21,7 +21,6 @@ public class ImageAdapter extends BaseAdapter {
     //Member fields
     private Context mContext;
     private List<String> mMoviePosterPaths = new ArrayList<String>();
-    private final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w500";
     private boolean mIsLocal = false;
 
     //Contructor
@@ -69,6 +68,7 @@ public class ImageAdapter extends BaseAdapter {
 
         //Use of Picasso library to load, cache & display images, only works if the path is not null
         //which the API returns sometimes
+        final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w500";
         if (!mMoviePosterPaths.get(position).equals(null)){
             if (mIsLocal){
                 Picasso.with(mContext)

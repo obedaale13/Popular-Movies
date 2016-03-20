@@ -10,9 +10,14 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.ShareActionProvider;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.ImageView;
@@ -41,8 +46,7 @@ import java.util.Arrays;
 import java.util.Date;
 
 public class MovieDetailActivity extends AppCompatActivity {
-
-    //Constants
+    
     private final String MOVIE_ID         = "id";
     private final String ORIGINAL_TITLE   = "original_title";
     private final String POSTER_PATH      = "poster_path";
@@ -56,6 +60,25 @@ public class MovieDetailActivity extends AppCompatActivity {
     ImageView movieThumbnail;
     private Cursor cursor;
     private ArrayList<String> movieTrailerReviewDataAL = new ArrayList<String>();
+    private ShareActionProvider mShareActionProvider;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.activity_detail, menu);
+        MenuItem menuItem = menu.findItem(R.id.action_share);
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+        mShareActionProvider.setShareIntent(createShareTrailerIntent());
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    private Intent createShareTrailerIntent() {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, "https://www.youtube.com/watch?v=" + cursor.getString(7));
+        return shareIntent;
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +88,8 @@ public class MovieDetailActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
+        Intent movieDetailActivity = getIntent();
+
         String mOriginalTitle;
         String mPosterPath;
         String mOverview;
@@ -72,8 +97,6 @@ public class MovieDetailActivity extends AppCompatActivity {
         String mVoteAverage;
         boolean isFavorite;
 
-        //Receive intent data
-        Intent movieDetailActivity = getIntent();
         ContentResolver resolver = getContentResolver();
 
         if (movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)){

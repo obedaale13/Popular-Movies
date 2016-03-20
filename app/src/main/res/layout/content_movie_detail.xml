@@ -81,7 +81,7 @@
             android:layout_marginBottom="16dp"
             android:clickable="true"
             android:onClick="onYoutubeClicked"
-            android:src="@drawable/youtube_play" />
+            android:src="@drawable/btn_youtube_play" />
 
         <View
             android:id="@+id/divider_two"

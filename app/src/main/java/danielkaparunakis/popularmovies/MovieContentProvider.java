@@ -35,7 +35,7 @@ public class MovieContentProvider extends ContentProvider {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                mHelper = MovieDatabaseHelper.getInstance(ApplicationContextUtility.getAppContext());
+                mHelper = MovieDatabaseHelper.getInstance(ApplicationContextGetter.getAppContext());
             }
         }, 500);
         return true;
