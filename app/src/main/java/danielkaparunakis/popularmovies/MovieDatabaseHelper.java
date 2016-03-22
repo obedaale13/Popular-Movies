@@ -54,8 +54,6 @@ public class MovieDatabaseHelper extends SQLiteOpenHelper {
                     MovieContract.MovieTable.COLUMN_REVIEW_AUTHOR + " TEXT;");
             db.execSQL("ALTER TABLE " + MovieContract.MovieTable.TABLE_NAME + " ADD COLUMN " +
                     MovieContract.MovieTable.COLUMN_REVIEW + " TEXT;");
-            db.execSQL("ALTER TABLE " + MovieContract.MovieTable.TABLE_NAME + " ADD COLUMN " +
-                    MovieContract.MovieTable.COLUMN_FAVORITE + " NUMERIC;");
         }
 
     }

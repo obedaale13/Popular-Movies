@@ -47,19 +47,21 @@ import java.util.Date;
 
 public class MovieDetailActivity extends AppCompatActivity {
     
-    private final String MOVIE_ID         = "id";
-    private final String ORIGINAL_TITLE   = "original_title";
-    private final String POSTER_PATH      = "poster_path";
-    private final String OVERVIEW         = "overview";
-    private final String VOTE_AVERAGE     = "vote_average";
-    private final String RELEASE_DATE     = "release_date";
-    private final String IS_FAVORITE_MODE = "isFavoriteMode";
-    private final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w500";
-    private final String MAX_VOTE_AVERAGE = "/10";
-    private final String LOG_TAG          = MovieDetailActivity.class.getSimpleName();
-    ImageView movieThumbnail;
-    private Cursor cursor;
-    private ArrayList<String> movieTrailerReviewDataAL = new ArrayList<String>();
+    private final String MOVIE_ID            = "id";
+    private final String ORIGINAL_TITLE      = "original_title";
+    private final String POSTER_PATH         = "poster_path";
+    private final String OVERVIEW            = "overview";
+    private final String VOTE_AVERAGE        = "vote_average";
+    private final String RELEASE_DATE        = "release_date";
+    private final String POSTER_FULL_PATH    = "http://image.tmdb.org/t/p/w500";
+    private final String MAX_VOTE_AVERAGE    = "/10";
+    private final String TRAILER_REVIEW_LIST = "TrailerReviewArrayListKey";
+    private final String LOG_TAG             = MovieDetailActivity.class.getSimpleName();
+
+    boolean mIsFavorite;
+    ImageView mMovieThumbnail;
+    private Cursor mMovieDataCursor;
+    private ArrayList<String> mMovieTrailerReviewDataList = new ArrayList<String>();
     private ShareActionProvider mShareActionProvider;
 
     @Override
@@ -68,17 +70,26 @@ public class MovieDetailActivity extends AppCompatActivity {
         menuInflater.inflate(R.menu.activity_detail, menu);
         MenuItem menuItem = menu.findItem(R.id.action_share);
         mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
-        mShareActionProvider.setShareIntent(createShareTrailerIntent());
+
+        // If the movie is in the database, go ahead and set the share intent right now.
+        if (mIsFavorite) {
+            mShareActionProvider.setShareIntent(createShareTrailerIntent());
+        }
+
         return super.onCreateOptionsMenu(menu);
     }
 
-    private Intent createShareTrailerIntent() {
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, "https://www.youtube.com/watch?v=" + cursor.getString(7));
-        return shareIntent;
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mMovieDataCursor.close();
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArrayList(TRAILER_REVIEW_LIST, mMovieTrailerReviewDataList);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,107 +100,150 @@ public class MovieDetailActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         Intent movieDetailActivity = getIntent();
+        if (savedInstanceState != null) {
+            mMovieTrailerReviewDataList = savedInstanceState.getStringArrayList(TRAILER_REVIEW_LIST);
+        }
 
-        String mOriginalTitle;
-        String mPosterPath;
-        String mOverview;
-        String mReleaseDate;
-        String mVoteAverage;
-        boolean isFavorite;
-
+        // Query database to see if the movie sent in by the main fragment is a favorite and has all
+        // its data in the database.
         ContentResolver resolver = getContentResolver();
+        mMovieDataCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+                MovieContract.MovieTable.projection,
+                MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
+                new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)},
+                null);
 
-        if (movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)){
-            cursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
-                    MovieContract.MovieTable.projection,
-                    MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
-                    new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)},
-                    null);
-            isFavorite = cursor.moveToFirst();
-            mOriginalTitle = cursor.getString(2);
-            mPosterPath = cursor.getString(3);
-            mOverview = cursor.getString(4);
-            mReleaseDate = cursor.getString(6);
-            mVoteAverage = cursor.getString(5);
+        mIsFavorite = mMovieDataCursor.moveToFirst();
+        String originalTitle;
+        String posterPath;
+        String overview;
+        String releaseDate;
+        String voteAverage;
+        TextView viewOverview = (TextView) findViewById(R.id.text_overview);
+        TextView viewReleaseDate = (TextView) findViewById(R.id.text_release_date);
+        TextView viewVoteAverage = (TextView) findViewById(R.id.text_vote_average);
+        CheckBox favoriteCheckbox = (CheckBox) findViewById(R.id.checkbox_mark_as_favorite);
+        TextView reviews = (TextView) findViewById(R.id.textview_review);
 
-        } else {
-            cursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
-                    new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID, MovieContract.MovieTable.COLUMN_POSTER_PATH},
-                    MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
-                    new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)},
-                    null);
-            isFavorite = cursor.moveToFirst();
-            mOriginalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
-            mPosterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
-            mOverview = movieDetailActivity.getStringExtra(OVERVIEW);
-            mReleaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
-            mVoteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE);
+        // If the movie is found in the database, pull all the data from the database, otherwise
+        // check if there was data saved in the savedInstanceBundle list, and use that or
+        // pull all the data from the intent and then make the network call to obtain trailer &
+        // review data. In the rare case that there is no database data or network connection or API,
+        // completely hide all views and tell user to connect to the internet
+        if (mIsFavorite){
+            originalTitle = mMovieDataCursor.getString(2);
+            posterPath = mMovieDataCursor.getString(3);
+            overview = mMovieDataCursor.getString(4);
+            releaseDate = mMovieDataCursor.getString(6);
+            voteAverage = mMovieDataCursor.getString(5) + MAX_VOTE_AVERAGE;
+        } else if (!mMovieTrailerReviewDataList.isEmpty() && movieDetailActivity.hasExtra(ORIGINAL_TITLE)){
+            originalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
+            posterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
+            overview = movieDetailActivity.getStringExtra(OVERVIEW);
+            releaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
+            voteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
+            Log.e(LOG_TAG, "case 2");
+        } else if (ConnectivityStatus.isOnline()){
+            originalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
+            posterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
+            overview = movieDetailActivity.getStringExtra(OVERVIEW);
+            releaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
+            voteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
             new FetchDetailMovieData().execute(movieDetailActivity.getStringExtra(MOVIE_ID));
+            Log.e(LOG_TAG, "case 3");
+        } else {
+            originalTitle = "";
+            posterPath = "";
+            overview = "";
+            releaseDate = "";
+            voteAverage = "";
+            viewOverview.setVisibility(View.INVISIBLE);
+            viewReleaseDate.setVisibility(View.INVISIBLE);
+            viewVoteAverage.setVisibility(View.INVISIBLE);
+            favoriteCheckbox.setVisibility(View.INVISIBLE);
+            reviews.setVisibility(View.INVISIBLE);
+            View dividerOne = findViewById(R.id.divider_one);
+            dividerOne.setVisibility(View.INVISIBLE);
+            View dividerTwo = findViewById(R.id.divider_two);
+            dividerTwo.setVisibility(View.INVISIBLE);
+            TextView trailerLabel = (TextView) findViewById(R.id.textview_trailers_label);
+            trailerLabel.setVisibility(View.INVISIBLE);
+            TextView reviewLabel = (TextView) findViewById(R.id.textview_reviews_label);
+            reviewLabel.setVisibility(View.INVISIBLE);
+            ImageView youtubeButton = (ImageView) findViewById(R.id.imageview_youtube_play);
+            youtubeButton.setVisibility(View.INVISIBLE);
         }
 
-        getSupportActionBar().setTitle(mOriginalTitle);
+        // This block updates all the views with corresponding movie data using the the variables
+        // initialized either with the data in the database or with the data coming from the intent.
+        getSupportActionBar().setTitle(originalTitle);
 
-        //Update movie thumbnail ImageView
-        movieThumbnail = (ImageView) findViewById(R.id.image_movie_thumbnail);
-        movieThumbnail.setMaxHeight(750);
-        movieThumbnail.setMaxWidth(500);
-        movieThumbnail.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        if (movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)){
+        mMovieThumbnail = (ImageView) findViewById(R.id.image_movie_thumbnail);
+        mMovieThumbnail.setMaxHeight(750);
+        mMovieThumbnail.setMaxWidth(500);
+        mMovieThumbnail.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+        // If the movie is in the database, pull the file that was saved, otherwise load from the
+        // internet using Picasso.
+        if (mIsFavorite){
             Picasso.with(this)
-                    .load(new File(mPosterPath))
-                    .into(movieThumbnail);
+                    .load(new File(posterPath))
+                    .into(mMovieThumbnail);
+        } else if (posterPath.isEmpty()){
+            Toast.makeText(this, "The movie data is no longer stored offline and you don't have " +
+                    "an internet connection, please connect to the internet and try again",
+                    Toast.LENGTH_LONG).show();
         } else {
             Picasso.with(this)
-                    .load(mPosterPath)
-                    .into(movieThumbnail);
+                    .load(posterPath)
+                    .into(mMovieThumbnail);
         }
 
-
-        //Update overview Textview
-        TextView overview = (TextView) findViewById(R.id.text_overview);
-        overview.setText(mOverview);
+        viewOverview.setText(overview);
 
         String newReleaseDate = null;
         try {
             Date date = new SimpleDateFormat("yyyy-MM-dd")
-                    .parse(mReleaseDate);
+                    .parse(releaseDate);
             newReleaseDate = new SimpleDateFormat("yyyy").format(date);
         } catch (ParseException e) {
             Log.e(LOG_TAG, "Parse error");
         }
+        viewReleaseDate.setText(newReleaseDate);
 
-        TextView releaseDate = (TextView) findViewById(R.id.text_release_date);
-        releaseDate.setText(newReleaseDate);
+        viewVoteAverage.setText(voteAverage);
 
-        //Update vote average textview
-        TextView voteAverage = (TextView) findViewById(R.id.text_vote_average);
-        voteAverage.setText(mVoteAverage + MAX_VOTE_AVERAGE);
+        favoriteCheckbox.setChecked(mIsFavorite);
 
-        CheckBox favoriteCheckbox = (CheckBox) findViewById(R.id.checkbox_mark_as_favorite);
-        favoriteCheckbox.setChecked(isFavorite);
-
-        if(movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)) {
-            TextView reviews = (TextView) findViewById(R.id.textview_review);
-
-            if(cursor.getString(8) != null) {
-                reviews.setText("By " + cursor.getString(8) + "\n\n" + cursor.getString(9));
+        // If the movie is in the database, update the review & trailer views now, otherwise, make
+        // an API call and update them in postExecute().
+        if(mIsFavorite) {
+            if(mMovieDataCursor.getString(8) != null) {
+                reviews.setText("By " + mMovieDataCursor.getString(8) + "\n\n" + mMovieDataCursor.getString(9));
             } else {
                 reviews.setText("No reviews available");
             }
+        } else if(!mMovieTrailerReviewDataList.isEmpty() && mMovieTrailerReviewDataList.get(1) != null) {
+            reviews.setText("By " + mMovieTrailerReviewDataList.get(1) + "\n\n" + mMovieTrailerReviewDataList.get(2));
+        } else {
+            reviews.setText("No reviews available");
         }
     }
 
-    private String getValidFileName(String invalidName){
-        String validName = invalidName.replaceAll(":","");
-        return validName;
-    }
-
+    // Without this override, the back button will simply go back to the last activity in the stack
+    // without updating said activity. If the last activity in the stack was in sorted by favorites
+    // mode, it is entirely possible to remove a movie from favorites and have the movie still be
+    // there because the activity doesn't update. This override ensures that the previous activity
+    // gets launched again.
     @Override
     public void onBackPressed() {
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
     }
 
+    // If the mark as favorite button gets checked, go ahead and all the movie data into the database
+    // and create a file for the movie poster. If it gets unchecked, go ahead and delete the file,
+    // and then delete the entry.
     public void onFavoriteClicked(View view){
         CheckBox favoriteCheckbox = (CheckBox) findViewById(R.id.checkbox_mark_as_favorite);
         ContentResolver resolver = getContentResolver();
@@ -197,9 +251,9 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         if(favoriteCheckbox.isChecked()){
             ContentValues contentValues = new ContentValues();
-            Bitmap b = Bitmap.createBitmap(movieThumbnail.getWidth(),movieThumbnail.getHeight(),Bitmap.Config.ARGB_8888);
+            Bitmap b = Bitmap.createBitmap(mMovieThumbnail.getWidth(), mMovieThumbnail.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(b);
-            movieThumbnail.draw(canvas);
+            mMovieThumbnail.draw(canvas);
             OutputStream fOut;
             String path = Environment.getExternalStorageDirectory().toString() + "/" +
                     getValidFileName(movieDetailActivity.getStringExtra(ORIGINAL_TITLE)) + ".jpg";
@@ -222,22 +276,21 @@ public class MovieDetailActivity extends AppCompatActivity {
             contentValues.put(MovieContract.MovieTable.COLUMN_RELEASE_DATE,
                     movieDetailActivity.getStringExtra((RELEASE_DATE)));
             contentValues.put(MovieContract.MovieTable.COLUMN_TRAILER,
-                    movieTrailerReviewDataAL.get(0));
+                    mMovieTrailerReviewDataList.get(0));
             contentValues.put(MovieContract.MovieTable.COLUMN_REVIEW_AUTHOR,
-                    movieTrailerReviewDataAL.get(1));
+                    mMovieTrailerReviewDataList.get(1));
             contentValues.put(MovieContract.MovieTable.COLUMN_REVIEW,
-                    movieTrailerReviewDataAL.get(2));
-            contentValues.put(MovieContract.MovieTable.COLUMN_FAVORITE,
-                    1);
+                    mMovieTrailerReviewDataList.get(2));
             resolver.insert(MovieContract.MovieTable.CONTENT_URI, contentValues);
         } else {
-            if (movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)){
-                File file = new File(cursor.getString(3));
-                file.delete();
-            } else {
-                File file = new File(cursor.getString(2));
-                file.delete();
-            }
+            mMovieDataCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+                    MovieContract.MovieTable.projection,
+                    MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
+                    new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)},
+                    null);
+            mMovieDataCursor.moveToFirst();
+            File file = new File(mMovieDataCursor.getString(3));
+            file.delete();
             resolver.delete(MovieContract.MovieTable.CONTENT_URI,
                     MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
                     new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)});
@@ -245,16 +298,17 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     }
 
+    // If the movie is in the database, go ahead and pull the link from the database. Otherwise,
+    // check the array list is not empty and get the data from there instead. In the rare case,
+    // that no trailers are available, handle that gracefully.
     public void onYoutubeClicked(View view) {
-        Intent movieDetailActivity = getIntent();
-
-        if (!movieTrailerReviewDataAL.isEmpty()) {
+        if (mIsFavorite) {
             Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
-                    Uri.parse("https://www.youtube.com/watch?v=" + movieTrailerReviewDataAL.get(0)));
+                    Uri.parse("https://www.youtube.com/watch?v=" + mMovieDataCursor.getString(7)));
             startActivity(youtubeIntent);
-        } else if (movieDetailActivity.getBooleanExtra(IS_FAVORITE_MODE, false)) {
+        } else if (!mMovieTrailerReviewDataList.isEmpty()) {
             Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
-                    Uri.parse("https://www.youtube.com/watch?v=" + cursor.getString(7)));
+                    Uri.parse("https://www.youtube.com/watch?v=" + mMovieTrailerReviewDataList.get(0)));
             startActivity(youtubeIntent);
         } else {
             Toast.makeText(this, "No trailers available", Toast.LENGTH_LONG).show();
@@ -262,6 +316,37 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     }
 
+    private Intent createShareTrailerIntent() {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+
+        // If the movie was found in the database, obtain the link from the DB. Otherwise the
+        // activity will make an API call and then the link will be found in the resulting array list
+        // In the rare event that the movie does not have a trailer, tell the user that there was
+        // no trailer gracefully.
+        if (mIsFavorite){
+            shareIntent.putExtra(Intent.EXTRA_TEXT,
+                    "https://www.youtube.com/watch?v=" + mMovieDataCursor.getString(7));
+        } else if(!mMovieTrailerReviewDataList.isEmpty() && mMovieTrailerReviewDataList.get(0) != null) {
+            shareIntent.putExtra(Intent.EXTRA_TEXT,
+                    "https://www.youtube.com/watch?v=" + mMovieTrailerReviewDataList.get(0));
+        } else {
+            shareIntent.putExtra(Intent.EXTRA_TEXT, "No trailers available :(");
+        }
+
+        return shareIntent;
+    }
+
+    // The logic used to store a movie when the "mark as favorite" checkbox is pressed saves the
+    // movie poster as an actual file using the movie name as the file name. Sometimes these names
+    // will contain invalid characters, this function returns a valid name.
+    private String getValidFileName(String invalidName){
+        String validName = invalidName.replaceAll(":","");
+        return validName;
+    }
+
+
+    // Fetches review data & trailer data only
     public class FetchDetailMovieData extends AsyncTask<String, Void, String[]> {
 
         private final String BUILDER_SCHEME = "http";
@@ -362,19 +447,21 @@ public class MovieDetailActivity extends AppCompatActivity {
         protected void onPostExecute(String[] movieTrailerReviewData) {
             super.onPostExecute(movieTrailerReviewData);
 
-            //Take data received from the execution of Asynctask and update an ArrayList with it
-            //Then update the image adapter
             if (movieTrailerReviewData != null){
-                movieTrailerReviewDataAL.clear();
-                movieTrailerReviewDataAL.addAll(Arrays.asList(movieTrailerReviewData));
+                mMovieTrailerReviewDataList.clear();
+                mMovieTrailerReviewDataList.addAll(Arrays.asList(movieTrailerReviewData));
             }
             TextView reviews = (TextView) findViewById(R.id.textview_review);
 
-            if(movieTrailerReviewDataAL.get(1) != null) {
-                reviews.setText("By " + movieTrailerReviewDataAL.get(1) + "\n\n" + movieTrailerReviewDataAL.get(2));
+            // Update these views now with the freshly downloaded data
+            if(mMovieTrailerReviewDataList.get(1) != null) {
+                reviews.setText("By " + mMovieTrailerReviewDataList.get(1) + "\n\n" + mMovieTrailerReviewDataList.get(2));
             } else {
                 reviews.setText("No reviews available");
             }
+
+            // Update the Share Action Provider now with the freshly obtained data
+            mShareActionProvider.setShareIntent(createShareTrailerIntent());
 
         }
 

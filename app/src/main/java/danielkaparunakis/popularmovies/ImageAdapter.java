@@ -34,6 +34,12 @@ public class ImageAdapter extends BaseAdapter {
         return 0;
     }
 
+    //Override used to get count of total views to display
+    @Override
+    public int getCount() {
+        return mMoviePosterPaths.size();
+    }
+
     //Method used to update data in MoviePosterPath array
     public void setmMoviePosterPaths (List<String> MoviePosterPaths) {
         mMoviePosterPaths = MoviePosterPaths;
@@ -41,12 +47,6 @@ public class ImageAdapter extends BaseAdapter {
 
     public void setLocalFileFlag(boolean isLocal) {
         mIsLocal = isLocal;
-    }
-
-    //Override used to get count of total views to display
-    @Override
-    public int getCount() {
-        return mMoviePosterPaths.size();
     }
 
     public Object getItem(int position) {

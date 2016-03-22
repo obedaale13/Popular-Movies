@@ -37,7 +37,6 @@ import java.util.Arrays;
  */
 public class MainActivityFragment extends Fragment {
 
-    //Constants & member fields
     private final String DEFAULT_API_CALL            = "now_playing";
     private final String POPULARITY                  = "popular";
     private final String TOP_RATED                   = "top_rated";
@@ -48,12 +47,13 @@ public class MainActivityFragment extends Fragment {
     private final String VOTE_AVERAGE                = "vote_average";
     private final String RELEASE_DATE                = "release_date";
     private final String SAVED_INSTANCE_POSTER_PATHS = "mMoviePosterPaths";
-    private final String IS_FAVORITE_MODE            = "isFavoriteMode";
     private final String SAVED_INSTANCE_JSON_RAW     = "JSONRawData";
-    private boolean isFavoriteMode                   = false;
+    public static final String SORTED_BY_FAVORITE    = "mSortedByFavorite";
     private final String LOG_TAG                     = MainActivityFragment.class.getSimpleName();
+
+    private boolean mSortedByFavorite                = false;
     private ArrayList<String> mMoviePosterPaths      = new ArrayList<String>();
-    private Cursor cursor;
+    private Cursor mCursor;
     private ImageAdapter mImageAdapter;
     private JSONArray mMovieDataArray;
     private JSONObject mMovieDataJSONObj;
@@ -61,7 +61,9 @@ public class MainActivityFragment extends Fragment {
     public MainActivityFragment() {
     }
 
-    //Override used to save the data in the array list & the JSON Object
+    // The mMoviePosterPaths serves to display all the poster in the main activity after a configuration
+    // change without an additional API call. The JSON object contains movie data passed in the detailActivity
+    // Intent so it is also necessary to save it
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -71,7 +73,7 @@ public class MainActivityFragment extends Fragment {
         if (mMovieDataJSONObj != null){
             outState.putString(SAVED_INSTANCE_JSON_RAW, mMovieDataJSONObj.toString());
         }
-        outState.putBoolean(IS_FAVORITE_MODE, isFavoriteMode);
+        outState.putBoolean(SORTED_BY_FAVORITE, mSortedByFavorite);
     }
 
     @Override
@@ -96,17 +98,17 @@ public class MainActivityFragment extends Fragment {
             case R.id.action_sort_by_popularity:
                 mImageAdapter.setLocalFileFlag(false);
                 new FetchMovieDataTask().execute(POPULARITY);
-                isFavoriteMode = false;
+                mSortedByFavorite = false;
                 return true;
             case R.id.action_sort_by_highest_rated:
                 mImageAdapter.setLocalFileFlag(false);
                 new FetchMovieDataTask().execute(TOP_RATED);
-                isFavoriteMode = false;
+                mSortedByFavorite = false;
                 return true;
             case R.id.action_sort_by_favorites_movies:
                 mImageAdapter.setLocalFileFlag(true);
                 favoriteMovies();
-                isFavoriteMode = true;
+                mSortedByFavorite = true;
                 mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
                 mImageAdapter.notifyDataSetInvalidated();
                 return true;
@@ -131,14 +133,15 @@ public class MainActivityFragment extends Fragment {
         }
         mImageAdapter = new ImageAdapter(getActivity());
 
-        //Decide how to populate views
+        // If there is data in savedInstance, pull from there, otherwise if the app is online,
+        // make an API call. If we are offline, use the poster paths stored in the database
         if (savedInstanceState != null) {
             //Populate array with previous instance's data
             mMoviePosterPaths = savedInstanceState.getStringArrayList(SAVED_INSTANCE_POSTER_PATHS);
 
             //Populate the JSON Object with previous instance's data in case of detail activity launch
 
-            if (savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW) != null && !savedInstanceState.getBoolean(IS_FAVORITE_MODE)){
+            if (savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW) != null && !savedInstanceState.getBoolean(SORTED_BY_FAVORITE)){
                 try {
                     mMovieDataJSONObj =
                             new JSONObject(savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW));
@@ -152,7 +155,7 @@ public class MainActivityFragment extends Fragment {
                 mImageAdapter.notifyDataSetInvalidated();
             } else {
                 mImageAdapter.setLocalFileFlag(true);
-                isFavoriteMode = true;
+                mSortedByFavorite = true;
                 //Reset ImageAdapter
                 mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
                 mImageAdapter.notifyDataSetInvalidated();
@@ -161,7 +164,7 @@ public class MainActivityFragment extends Fragment {
         } else if (ConnectivityStatus.isOnline()){
             //Launch default API call
             new FetchMovieDataTask().execute(DEFAULT_API_CALL);
-            isFavoriteMode = false;
+            mSortedByFavorite = false;
         } else {
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
@@ -169,7 +172,7 @@ public class MainActivityFragment extends Fragment {
                 public void run() {
                     mImageAdapter.setLocalFileFlag(true);
                     favoriteMovies();
-                    isFavoriteMode = true;
+                    mSortedByFavorite = true;
                     mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
                     mImageAdapter.notifyDataSetInvalidated();
                 }
@@ -178,27 +181,28 @@ public class MainActivityFragment extends Fragment {
         }
         MoviePosterGrid.setAdapter(mImageAdapter);
 
-        //Set onItemClick behavior
+        // All send you to the detailActivity. In the first case, since the movies are being pulled
+        // from the database and savedInstanceState does not have anything, the activity sends all data
+        // from the database. In the second, the mCursor may not longer have data since savedInstanceState
+        // now has data, therefore, the mCursor gets recreated and then sent off.
         MoviePosterGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent movieDetailActivity = new Intent(getActivity(), MovieDetailActivity.class);
 
-                if(isFavoriteMode && savedInstanceState == null){
-                    cursor.moveToPosition(position);
-                    movieDetailActivity.putExtra(MOVIE_ID, cursor.getString(1));
-                    movieDetailActivity.putExtra(IS_FAVORITE_MODE, isFavoriteMode);
-                } else if(isFavoriteMode && savedInstanceState != null){
+                if(mSortedByFavorite && savedInstanceState == null){
+                    mCursor.moveToPosition(position);
+                    movieDetailActivity.putExtra(MOVIE_ID, mCursor.getString(1));
+                } else if(mSortedByFavorite && savedInstanceState != null){
                     ContentResolver resolver = getActivity().getContentResolver();
-                    cursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+                    mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
                             new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID
                                     , MovieContract.MovieTable.COLUMN_POSTER_PATH},
                             MovieContract.MovieTable.COLUMN_POSTER_PATH + " = ?",
                             new String[]{mMoviePosterPaths.get(position)},
                             null);
-                    cursor.moveToFirst();
-                    movieDetailActivity.putExtra(MOVIE_ID, cursor.getString(1));
-                    movieDetailActivity.putExtra(IS_FAVORITE_MODE, isFavoriteMode);
+                    mCursor.moveToFirst();
+                    movieDetailActivity.putExtra(MOVIE_ID, mCursor.getString(1));
                 } else {
                     //Use data currently residing in the JSONArray instead of querying the server again
                     try {
@@ -208,7 +212,6 @@ public class MainActivityFragment extends Fragment {
                         movieDetailActivity.putExtra(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
                         movieDetailActivity.putExtra(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
                         movieDetailActivity.putExtra(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
-                        movieDetailActivity.putExtra(IS_FAVORITE_MODE, isFavoriteMode);
                     } catch (JSONException e) {
                         Log.e(LOG_TAG, e.getMessage(), e);
                         e.printStackTrace();
@@ -222,18 +225,19 @@ public class MainActivityFragment extends Fragment {
         return rootView;
     }
 
+    // This method fetches all the poster paths for movies stored in the database
     private void favoriteMovies(){
         ContentResolver resolver = getActivity().getContentResolver();
 
-        cursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+        mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
                 new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID, MovieContract.MovieTable.COLUMN_POSTER_PATH},
                 null,
                 null,
                 null);
-        String[] moviePosterPaths = new String[cursor.getCount()];
-        for (int i = 0; i < cursor.getCount(); i++) {
-            cursor.moveToNext();
-            moviePosterPaths[i] = cursor.getString(2);
+        String[] moviePosterPaths = new String[mCursor.getCount()];
+        for (int i = 0; i < mCursor.getCount(); i++) {
+            mCursor.moveToNext();
+            moviePosterPaths[i] = mCursor.getString(2);
         }
         mMoviePosterPaths.clear();
         mMoviePosterPaths.addAll(Arrays.asList(moviePosterPaths));

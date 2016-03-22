@@ -40,8 +40,6 @@ public class MovieContract {
 
         public static final String COLUMN_REVIEW = "reviews";
 
-        public static final String COLUMN_FAVORITE = "favorite";
-
         public static final String SORT_ORDER_DEFAULT = COLUMN_MOVIE_ID + " ASC";
 
         public static final String[] projection = new String[]{
@@ -55,7 +53,6 @@ public class MovieContract {
                 COLUMN_TRAILER,
                 COLUMN_REVIEW_AUTHOR,
                 COLUMN_REVIEW,
-                COLUMN_FAVORITE
         };
     }
 }
