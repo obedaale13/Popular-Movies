@@ -225,6 +225,14 @@ public class MainActivityFragment extends Fragment {
         return rootView;
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if(mCursor != null) {
+            mCursor.close();
+        }
+    }
+
     // This method fetches all the poster paths for movies stored in the database
     private void favoriteMovies(){
         ContentResolver resolver = getActivity().getContentResolver();
@@ -270,7 +278,7 @@ public class MainActivityFragment extends Fragment {
                     .appendPath(BUILDER_PATH_1)
                     .appendPath(BUILDER_PATH_2)
                     .appendPath(params[0])
-                    .appendQueryParameter(APIKEY_PARAM, "***REMOVED***"); //Your API KEY goes here
+                    .appendQueryParameter(APIKEY_PARAM, ""); //Your API KEY goes here
 
             //Built URL stored in a string
             String builtURL = builder.build().toString();

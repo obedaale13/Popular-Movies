@@ -82,7 +82,9 @@ public class MovieDetailActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mMovieDataCursor.close();
+        if (mMovieDataCursor != null){
+            mMovieDataCursor.close();
+        }
     }
 
     @Override
@@ -375,7 +377,7 @@ public class MovieDetailActivity extends AppCompatActivity {
                     .appendPath(BUILDER_PATH_1)
                     .appendPath(BUILDER_PATH_2)
                     .appendPath(params[0])
-                    .appendQueryParameter(APIKEY_PARAM, "***REMOVED***")
+                    .appendQueryParameter(APIKEY_PARAM, "")
                     .appendQueryParameter(TRAILERS_REVIEWS, "reviews,trailers");
 
             //Built URL stored in a string
