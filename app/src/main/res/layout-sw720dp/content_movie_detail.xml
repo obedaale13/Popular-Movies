@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context="danielkaparunakis.popularmovies.MovieDetailActivity"
+    tools:showIn="@layout/activity_movie_detail">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin">
+
+        <ImageView
+            android:id="@+id/image_movie_thumbnail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/imageview_margin_bottom"
+            android:layout_marginLeft="@dimen/imageview_margin_left"
+            android:layout_marginRight="@dimen/imageview_margin_right" />
+
+        <TextView
+            android:id="@+id/text_overview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/image_movie_thumbnail" />
+
+        <TextView
+            android:id="@+id/text_release_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/release_date_margin_bottom"
+            android:layout_marginTop="@dimen/release_date_margin_top"
+            android:layout_toRightOf="@+id/image_movie_thumbnail" />
+
+        <TextView
+            android:id="@+id/text_vote_average"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/text_release_date"
+            android:layout_toRightOf="@id/image_movie_thumbnail" />
+
+        <CheckBox
+            android:id="@+id/checkbox_mark_as_favorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/text_vote_average"
+            android:layout_below="@+id/text_vote_average"
+            android:layout_toRightOf="@id/image_movie_thumbnail"
+            android:onClick="onFavoriteClicked"
+            android:text="@string/button_label_mark_as_favorite" />
+
+        <View
+            android:id="@+id/divider_one"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@+id/text_overview"
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="16dp"
+            android:background="@android:color/darker_gray" />
+
+        <TextView
+            android:id="@+id/textview_trailers_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/divider_one"
+            android:layout_marginBottom="16dp"
+            android:text="@string/textview_trailers_label"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+        <ImageView
+            android:id="@+id/imageview_youtube_play"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/textview_trailers_label"
+            android:layout_marginBottom="16dp"
+            android:clickable="true"
+            android:onClick="onYoutubeClicked"
+            android:src="@drawable/btn_youtube_play" />
+
+        <View
+            android:id="@+id/divider_two"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@+id/imageview_youtube_play"
+            android:layout_marginBottom="16dp"
+            android:background="@android:color/darker_gray" />
+
+        <TextView
+            android:id="@+id/textview_reviews_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/divider_two"
+            android:layout_marginBottom="16dp"
+            android:text="@string/textview_reviews_label"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+        <TextView
+            android:id="@+id/textview_review"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/textview_reviews_label" />
+
+    </RelativeLayout>
+
+</ScrollView>
