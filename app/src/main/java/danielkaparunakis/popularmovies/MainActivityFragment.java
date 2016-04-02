@@ -121,8 +121,7 @@ public class MainActivityFragment extends Fragment {
                              final Bundle savedInstanceState) {
 
         //Inflate fragment when View is created, then stored to be returned at the end of the method
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-
+        View rootView = inflater.inflate(R.layout.gridview, container, false);
         //Find the Movie Posters Grid by ID & bind it to the custom-made ImageView adapter
         GridView MoviePosterGrid  = (GridView) rootView.findViewById(R.id.movie_poster_grid);
         MoviePosterGrid.setColumnWidth(500);
