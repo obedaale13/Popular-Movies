@@ -66,6 +66,12 @@ public class MovieDetailActivityFragment extends Fragment {
     private ArrayList<String> mMovieTrailerReviewDataList = new ArrayList<String>();
     private ShareActionProvider mShareActionProvider;
     String mOriginalTitle;
+    String mPosterPath;
+    String mOverview;
+    String mReleaseDate;
+    String mVoteAverage;
+    String mMovieID;
+
 
     @Override
     public void onDestroy() {
@@ -78,6 +84,15 @@ public class MovieDetailActivityFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Bundle bundle = this.getArguments();
+        if (bundle != null) {
+            mMovieID = bundle.getString(MOVIE_ID);
+            mOriginalTitle = bundle.getString(ORIGINAL_TITLE);
+            mPosterPath = POSTER_FULL_PATH + bundle.getString(POSTER_PATH);
+            mOverview = bundle.getString(OVERVIEW);
+            mReleaseDate = bundle.getString(RELEASE_DATE);
+            mVoteAverage = bundle.getString(VOTE_AVERAGE);
+        }
         setHasOptionsMenu(true);
     }
 
@@ -113,6 +128,9 @@ public class MovieDetailActivityFragment extends Fragment {
         if (savedInstanceState != null) {
             mMovieTrailerReviewDataList = savedInstanceState.getStringArrayList(TRAILER_REVIEW_LIST);
         }
+        if (movieDetailActivity.getStringExtra(MOVIE_ID) != null) {
+            mMovieID = movieDetailActivity.getStringExtra(MOVIE_ID);
+        }
 
         // Query database to see if the movie sent in by the main fragment is a favorite and has all
         // its data in the database.
@@ -120,14 +138,10 @@ public class MovieDetailActivityFragment extends Fragment {
         mMovieDataCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
                 MovieContract.MovieTable.projection,
                 MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
-                new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)},
+                new String[]{mMovieID},
                 null);
 
         mIsFavorite = mMovieDataCursor.moveToFirst();
-        String posterPath;
-        String overview;
-        String releaseDate;
-        String voteAverage;
         TextView viewOverview = (TextView) rootView.findViewById(R.id.text_overview);
         TextView viewReleaseDate = (TextView) rootView.findViewById(R.id.text_release_date);
         TextView viewVoteAverage = (TextView) rootView.findViewById(R.id.text_vote_average);
@@ -141,30 +155,31 @@ public class MovieDetailActivityFragment extends Fragment {
         // completely hide all views and tell user to connect to the internet
         if (mIsFavorite){
             mOriginalTitle = mMovieDataCursor.getString(2);
-            posterPath = mMovieDataCursor.getString(3);
-            overview = mMovieDataCursor.getString(4);
-            releaseDate = mMovieDataCursor.getString(6);
-            voteAverage = mMovieDataCursor.getString(5) + MAX_VOTE_AVERAGE;
+            mPosterPath = mMovieDataCursor.getString(3);
+            mOverview = mMovieDataCursor.getString(4);
+            mReleaseDate = mMovieDataCursor.getString(6);
+            mVoteAverage = mMovieDataCursor.getString(5) + MAX_VOTE_AVERAGE;
+        } else if (movieDetailActivity.getStringExtra(MOVIE_ID) == null && ConnectivityStatus.isOnline() ){
+            new FetchDetailMovieData().execute(mMovieID);
         } else if (!mMovieTrailerReviewDataList.isEmpty() && movieDetailActivity.hasExtra(ORIGINAL_TITLE)){
             mOriginalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
-            posterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
-            overview = movieDetailActivity.getStringExtra(OVERVIEW);
-            releaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
-            voteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
-            Log.e(LOG_TAG, "case 2");
+            mPosterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
+            mOverview = movieDetailActivity.getStringExtra(OVERVIEW);
+            mReleaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
+            mVoteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
         } else if (ConnectivityStatus.isOnline()){
             mOriginalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
-            posterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
-            overview = movieDetailActivity.getStringExtra(OVERVIEW);
-            releaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
-            voteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
+            mPosterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
+            mOverview = movieDetailActivity.getStringExtra(OVERVIEW);
+            mReleaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
+            mVoteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
             new FetchDetailMovieData().execute(movieDetailActivity.getStringExtra(MOVIE_ID));
         } else {
             mOriginalTitle = "";
-            posterPath = "";
-            overview = "";
-            releaseDate = "";
-            voteAverage = "";
+            mPosterPath = "";
+            mOverview = "";
+            mReleaseDate = "";
+            mVoteAverage = "";
             viewOverview.setVisibility(View.INVISIBLE);
             viewReleaseDate.setVisibility(View.INVISIBLE);
             viewVoteAverage.setVisibility(View.INVISIBLE);
@@ -194,31 +209,31 @@ public class MovieDetailActivityFragment extends Fragment {
         // internet using Picasso.
         if (mIsFavorite){
             Picasso.with(getActivity())
-                    .load(new File(posterPath))
+                    .load(new File(mPosterPath))
                     .into(mMovieThumbnail);
-        } else if (posterPath.isEmpty()){
+        } else if (mPosterPath.isEmpty()){
             Toast.makeText(getActivity(), "The movie data is no longer stored offline and you don't have " +
                     "an internet connection, please connect to the internet and try again",
                     Toast.LENGTH_LONG).show();
         } else {
             Picasso.with(getActivity())
-                    .load(posterPath)
+                    .load(mPosterPath)
                     .into(mMovieThumbnail);
         }
 
-        viewOverview.setText(overview);
+        viewOverview.setText(mOverview);
 
         String newReleaseDate = null;
         try {
             Date date = new SimpleDateFormat("yyyy-MM-dd")
-                    .parse(releaseDate);
+                    .parse(mReleaseDate);
             newReleaseDate = new SimpleDateFormat("yyyy").format(date);
         } catch (ParseException e) {
             Log.e(LOG_TAG, "Parse error");
         }
         viewReleaseDate.setText(newReleaseDate);
 
-        viewVoteAverage.setText(voteAverage);
+        viewVoteAverage.setText(mVoteAverage);
 
         favoriteCheckbox.setChecked(mIsFavorite);
 
@@ -249,7 +264,7 @@ public class MovieDetailActivityFragment extends Fragment {
                     mMovieThumbnail.draw(canvas);
                     OutputStream fOut;
                     String path = Environment.getExternalStorageDirectory().toString() + "/" +
-                            getValidFileName(movieDetailActivity.getStringExtra(ORIGINAL_TITLE)) + ".jpg";
+                            getValidFileName(mOriginalTitle) + ".jpg";
                     File file = new File(path);
                     try {
                         fOut = new FileOutputStream(file);
@@ -258,16 +273,16 @@ public class MovieDetailActivityFragment extends Fragment {
                         e.printStackTrace();
                     }
                     contentValues.put(MovieContract.MovieTable.COLUMN_MOVIE_ID,
-                            movieDetailActivity.getStringExtra(MOVIE_ID));
+                            mMovieID);
                     contentValues.put(MovieContract.MovieTable.COLUMN_ORIGINAL_TITLE,
-                            movieDetailActivity.getStringExtra(ORIGINAL_TITLE));
+                            mOriginalTitle);
                     contentValues.put(MovieContract.MovieTable.COLUMN_POSTER_PATH, path);
                     contentValues.put(MovieContract.MovieTable.COLUMN_OVERVIEW,
-                            movieDetailActivity.getStringExtra(OVERVIEW));
+                            mOverview);
                     contentValues.put(MovieContract.MovieTable.COLUMN_VOTE_AVERAGE,
-                            movieDetailActivity.getStringExtra((VOTE_AVERAGE)));
+                            mVoteAverage);
                     contentValues.put(MovieContract.MovieTable.COLUMN_RELEASE_DATE,
-                            movieDetailActivity.getStringExtra((RELEASE_DATE)));
+                            mReleaseDate);
                     contentValues.put(MovieContract.MovieTable.COLUMN_TRAILER,
                             mMovieTrailerReviewDataList.get(0));
                     contentValues.put(MovieContract.MovieTable.COLUMN_REVIEW_AUTHOR,
@@ -279,14 +294,14 @@ public class MovieDetailActivityFragment extends Fragment {
                     mMovieDataCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
                             MovieContract.MovieTable.projection,
                             MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
-                            new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)},
+                            new String[]{mMovieID},
                             null);
                     mMovieDataCursor.moveToFirst();
                     File file = new File(mMovieDataCursor.getString(3));
                     file.delete();
                     resolver.delete(MovieContract.MovieTable.CONTENT_URI,
                             MovieContract.MovieTable.COLUMN_MOVIE_ID + " = ? ",
-                            new String[]{movieDetailActivity.getStringExtra(MOVIE_ID)});
+                            new String[]{mMovieID});
                 }
             }
         });

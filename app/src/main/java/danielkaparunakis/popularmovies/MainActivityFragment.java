@@ -1,5 +1,6 @@
 package danielkaparunakis.popularmovies;
 
+import android.app.FragmentTransaction;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -121,7 +122,7 @@ public class MainActivityFragment extends Fragment {
                              final Bundle savedInstanceState) {
 
         //Inflate fragment when View is created, then stored to be returned at the end of the method
-        View rootView = inflater.inflate(R.layout.gridview, container, false);
+        final View rootView = inflater.inflate(R.layout.gridview, container, false);
         //Find the Movie Posters Grid by ID & bind it to the custom-made ImageView adapter
         GridView MoviePosterGrid  = (GridView) rootView.findViewById(R.id.movie_poster_grid);
         MoviePosterGrid.setColumnWidth(500);
@@ -187,37 +188,80 @@ public class MainActivityFragment extends Fragment {
         MoviePosterGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent movieDetailActivity = new Intent(getActivity(), MovieDetailActivity.class);
 
-                if(mSortedByFavorite && savedInstanceState == null){
-                    mCursor.moveToPosition(position);
-                    movieDetailActivity.putExtra(MOVIE_ID, mCursor.getString(1));
-                } else if(mSortedByFavorite && savedInstanceState != null){
-                    ContentResolver resolver = getActivity().getContentResolver();
-                    mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
-                            new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID
-                                    , MovieContract.MovieTable.COLUMN_POSTER_PATH},
-                            MovieContract.MovieTable.COLUMN_POSTER_PATH + " = ?",
-                            new String[]{mMoviePosterPaths.get(position)},
-                            null);
-                    mCursor.moveToFirst();
-                    movieDetailActivity.putExtra(MOVIE_ID, mCursor.getString(1));
-                } else {
-                    //Use data currently residing in the JSONArray instead of querying the server again
-                    try {
-                        movieDetailActivity.putExtra(MOVIE_ID, mMovieDataArray.getJSONObject(position).getString("id"));
-                        movieDetailActivity.putExtra(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
-                        movieDetailActivity.putExtra(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
-                        movieDetailActivity.putExtra(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
-                        movieDetailActivity.putExtra(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
-                        movieDetailActivity.putExtra(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
-                    } catch (JSONException e) {
-                        Log.e(LOG_TAG, e.getMessage(), e);
-                        e.printStackTrace();
+                View fragmentContainer = getActivity().findViewById(R.id.fragment_container);
+                if (fragmentContainer != null) {
+                    MovieDetailActivityFragment movieDetailActivityFragment = new MovieDetailActivityFragment();
+                    Bundle bundle = new Bundle();
+
+                    if(mSortedByFavorite && savedInstanceState == null){
+                        mCursor.moveToPosition(position);
+                        bundle.putString(MOVIE_ID, mCursor.getString(1));
+                    } else if(mSortedByFavorite && savedInstanceState != null){
+                        ContentResolver resolver = getActivity().getContentResolver();
+                        mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+                                new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID
+                                        , MovieContract.MovieTable.COLUMN_POSTER_PATH},
+                                MovieContract.MovieTable.COLUMN_POSTER_PATH + " = ?",
+                                new String[]{mMoviePosterPaths.get(position)},
+                                null);
+                        mCursor.moveToFirst();
+                        bundle.putString(MOVIE_ID, mCursor.getString(1));
+                    } else {
+                        //Use data currently residing in the JSONArray instead of querying the server again
+                        try {
+                            bundle.putString(MOVIE_ID, mMovieDataArray.getJSONObject(position).getString("id"));
+                            bundle.putString(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
+                            bundle.putString(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
+                            bundle.putString(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
+                            bundle.putString(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
+                            bundle.putString(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
+                        } catch (JSONException e) {
+                            Log.e(LOG_TAG, e.getMessage(), e);
+                            e.printStackTrace();
+                        }
                     }
+                    movieDetailActivityFragment.setArguments(bundle);
+                    FragmentTransaction transaction = getActivity().getFragmentManager().beginTransaction();
+                    transaction.replace(R.id.fragment_container, movieDetailActivityFragment);
+                    transaction.addToBackStack(null);
+                    transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+                    transaction.commit();
+                } else {
+                    Intent movieDetailActivity = new Intent(getActivity(), MovieDetailActivity.class);
+
+                    if(mSortedByFavorite && savedInstanceState == null){
+                        mCursor.moveToPosition(position);
+                        movieDetailActivity.putExtra(MOVIE_ID, mCursor.getString(1));
+                    } else if(mSortedByFavorite && savedInstanceState != null){
+                        ContentResolver resolver = getActivity().getContentResolver();
+                        mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
+                                new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID
+                                        , MovieContract.MovieTable.COLUMN_POSTER_PATH},
+                                MovieContract.MovieTable.COLUMN_POSTER_PATH + " = ?",
+                                new String[]{mMoviePosterPaths.get(position)},
+                                null);
+                        mCursor.moveToFirst();
+                        movieDetailActivity.putExtra(MOVIE_ID, mCursor.getString(1));
+                    } else {
+                        //Use data currently residing in the JSONArray instead of querying the server again
+                        try {
+                            movieDetailActivity.putExtra(MOVIE_ID, mMovieDataArray.getJSONObject(position).getString("id"));
+                            movieDetailActivity.putExtra(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
+                            movieDetailActivity.putExtra(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
+                            movieDetailActivity.putExtra(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
+                            movieDetailActivity.putExtra(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
+                            movieDetailActivity.putExtra(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
+                        } catch (JSONException e) {
+                            Log.e(LOG_TAG, e.getMessage(), e);
+                            e.printStackTrace();
+                        }
+                    }
+
+                    startActivity(movieDetailActivity);
                 }
 
-                startActivity(movieDetailActivity);
+
             }
         });
 
