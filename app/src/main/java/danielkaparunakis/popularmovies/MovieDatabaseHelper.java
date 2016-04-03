@@ -6,10 +6,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 /**
  * Created by DanielKaparunakis on 3/15/16.
+ * Database helper class for the favorite movies database.
  */
 public class MovieDatabaseHelper extends SQLiteOpenHelper {
+
     private static final String DATABASE_NAME = "favorites.db";
     private static final int SCHEMA_VERSION = 2;
+
     private static MovieDatabaseHelper singleton = null;
 
     synchronized static MovieDatabaseHelper getInstance(Context context){
@@ -20,6 +23,10 @@ public class MovieDatabaseHelper extends SQLiteOpenHelper {
         return singleton;
     }
 
+    private MovieDatabaseHelper(Context context) {
+        super(context, DATABASE_NAME, null, SCHEMA_VERSION);
+    }
+
     @Override
     public void onCreate(SQLiteDatabase db) {
         upgradeMyDatabase(db, 0, SCHEMA_VERSION);
@@ -28,10 +35,6 @@ public class MovieDatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         upgradeMyDatabase(db, oldVersion, newVersion);
-    }
-
-    private MovieDatabaseHelper(Context context) {
-        super(context, DATABASE_NAME, null, SCHEMA_VERSION);
     }
 
     private void upgradeMyDatabase(SQLiteDatabase db, int oldVersion, int newVersion){

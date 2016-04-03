@@ -10,6 +10,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -34,7 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * A placeholder fragment containing a simple view.
+ * Displays movie posters pulled from a network API call to themoviedb.org
  */
 public class MainActivityFragment extends Fragment {
 
@@ -122,26 +123,42 @@ public class MainActivityFragment extends Fragment {
                              final Bundle savedInstanceState) {
 
         //Inflate fragment when View is created, then stored to be returned at the end of the method
-        final View rootView = inflater.inflate(R.layout.gridview, container, false);
+        final View rootView = inflater.inflate(R.layout.item_gridview, container, false);
+
+        DisplayMetrics metrics = new DisplayMetrics();
+        getActivity().getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
         //Find the Movie Posters Grid by ID & bind it to the custom-made ImageView adapter
         GridView MoviePosterGrid  = (GridView) rootView.findViewById(R.id.movie_poster_grid);
-        MoviePosterGrid.setColumnWidth(500);
-        if(Configuration.ORIENTATION_PORTRAIT == getResources().getConfiguration().orientation) {
+
+        //Determine the number of columns to show in the gridview with sizes. If it is a tablet,
+        //use the size for 4 columns but only display two. If it is a phone, display 2 or 4,
+        //depending on device orientation.
+        if (metrics.widthPixels / metrics.density > 600) {
+            MoviePosterGrid.setColumnWidth(metrics.widthPixels/4);
             MoviePosterGrid.setNumColumns(2);
         } else {
-            MoviePosterGrid.setNumColumns(4);
+            if(Configuration.ORIENTATION_PORTRAIT == getResources().getConfiguration().orientation) {
+                MoviePosterGrid.setColumnWidth(metrics.widthPixels/2);
+                MoviePosterGrid.setNumColumns(2);
+            } else {
+                MoviePosterGrid.setColumnWidth(metrics.widthPixels/4);
+                MoviePosterGrid.setNumColumns(4);
+            }
         }
+
         mImageAdapter = new ImageAdapter(getActivity());
 
         // If there is data in savedInstance, pull from there, otherwise if the app is online,
         // make an API call. If we are offline, use the poster paths stored in the database
         if (savedInstanceState != null) {
+
             //Populate array with previous instance's data
             mMoviePosterPaths = savedInstanceState.getStringArrayList(SAVED_INSTANCE_POSTER_PATHS);
 
             //Populate the JSON Object with previous instance's data in case of detail activity launch
-
-            if (savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW) != null && !savedInstanceState.getBoolean(SORTED_BY_FAVORITE)){
+            if (savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW) != null &&
+                    !savedInstanceState.getBoolean(SORTED_BY_FAVORITE)){
                 try {
                     mMovieDataJSONObj =
                             new JSONObject(savedInstanceState.getString(SAVED_INSTANCE_JSON_RAW));
@@ -181,17 +198,20 @@ public class MainActivityFragment extends Fragment {
         }
         MoviePosterGrid.setAdapter(mImageAdapter);
 
-        // All send you to the detailActivity. In the first case, since the movies are being pulled
+        // All you send to the detailActivity. In the first case, since the movies are being pulled
         // from the database and savedInstanceState does not have anything, the activity sends all data
         // from the database. In the second, the mCursor may not longer have data since savedInstanceState
-        // now has data, therefore, the mCursor gets recreated and then sent off.
+        // now has data, therefore, the mCursor gets recreated and then sent off. Enclosing these
+        // cases, you have the possibility of the master/detail flow, so either the data gets sent
+        // using an intent or it gets put into a Bundle and then passes to the detail fragment.
         MoviePosterGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                 View fragmentContainer = getActivity().findViewById(R.id.fragment_container);
                 if (fragmentContainer != null) {
-                    MovieDetailActivityFragment movieDetailActivityFragment = new MovieDetailActivityFragment();
+                    MovieDetailActivityFragment movieDetailActivityFragment =
+                            new MovieDetailActivityFragment();
                     Bundle bundle = new Bundle();
 
                     if(mSortedByFavorite && savedInstanceState == null){
@@ -200,8 +220,9 @@ public class MainActivityFragment extends Fragment {
                     } else if(mSortedByFavorite && savedInstanceState != null){
                         ContentResolver resolver = getActivity().getContentResolver();
                         mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
-                                new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID
-                                        , MovieContract.MovieTable.COLUMN_POSTER_PATH},
+                                new String[]{MovieContract.MovieTable._ID,
+                                        MovieContract.MovieTable.COLUMN_MOVIE_ID,
+                                        MovieContract.MovieTable.COLUMN_POSTER_PATH},
                                 MovieContract.MovieTable.COLUMN_POSTER_PATH + " = ?",
                                 new String[]{mMoviePosterPaths.get(position)},
                                 null);
@@ -210,19 +231,32 @@ public class MainActivityFragment extends Fragment {
                     } else {
                         //Use data currently residing in the JSONArray instead of querying the server again
                         try {
-                            bundle.putString(MOVIE_ID, mMovieDataArray.getJSONObject(position).getString("id"));
-                            bundle.putString(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
-                            bundle.putString(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
-                            bundle.putString(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
-                            bundle.putString(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
-                            bundle.putString(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
+                            bundle.putString(
+                                    MOVIE_ID, mMovieDataArray.getJSONObject(position)
+                                            .getString("id"));
+                            bundle.putString(
+                                    ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position)
+                                            .getString("original_title"));
+                            bundle.putString(
+                                    POSTER_PATH, mMovieDataArray.getJSONObject(position)
+                                            .getString("poster_path"));
+                            bundle.putString(
+                                    OVERVIEW, mMovieDataArray.getJSONObject(position)
+                                            .getString("overview"));
+                            bundle.putString(
+                                    VOTE_AVERAGE, mMovieDataArray.getJSONObject(position)
+                                            .getString("vote_average"));
+                            bundle.putString(
+                                    RELEASE_DATE, mMovieDataArray.getJSONObject(position)
+                                            .getString("release_date"));
                         } catch (JSONException e) {
                             Log.e(LOG_TAG, e.getMessage(), e);
                             e.printStackTrace();
                         }
                     }
                     movieDetailActivityFragment.setArguments(bundle);
-                    FragmentTransaction transaction = getActivity().getFragmentManager().beginTransaction();
+                    FragmentTransaction transaction = getActivity().getFragmentManager()
+                            .beginTransaction();
                     transaction.replace(R.id.fragment_container, movieDetailActivityFragment);
                     transaction.addToBackStack(null);
                     transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
@@ -236,8 +270,9 @@ public class MainActivityFragment extends Fragment {
                     } else if(mSortedByFavorite && savedInstanceState != null){
                         ContentResolver resolver = getActivity().getContentResolver();
                         mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
-                                new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID
-                                        , MovieContract.MovieTable.COLUMN_POSTER_PATH},
+                                new String[]{MovieContract.MovieTable._ID,
+                                        MovieContract.MovieTable.COLUMN_MOVIE_ID,
+                                        MovieContract.MovieTable.COLUMN_POSTER_PATH},
                                 MovieContract.MovieTable.COLUMN_POSTER_PATH + " = ?",
                                 new String[]{mMoviePosterPaths.get(position)},
                                 null);
@@ -246,12 +281,24 @@ public class MainActivityFragment extends Fragment {
                     } else {
                         //Use data currently residing in the JSONArray instead of querying the server again
                         try {
-                            movieDetailActivity.putExtra(MOVIE_ID, mMovieDataArray.getJSONObject(position).getString("id"));
-                            movieDetailActivity.putExtra(ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position).getString("original_title"));
-                            movieDetailActivity.putExtra(POSTER_PATH, mMovieDataArray.getJSONObject(position).getString("poster_path"));
-                            movieDetailActivity.putExtra(OVERVIEW, mMovieDataArray.getJSONObject(position).getString("overview"));
-                            movieDetailActivity.putExtra(VOTE_AVERAGE, mMovieDataArray.getJSONObject(position).getString("vote_average"));
-                            movieDetailActivity.putExtra(RELEASE_DATE, mMovieDataArray.getJSONObject(position).getString("release_date"));
+                            movieDetailActivity.putExtra(
+                                    MOVIE_ID, mMovieDataArray.getJSONObject(position)
+                                            .getString("id"));
+                            movieDetailActivity.putExtra(
+                                    ORIGINAL_TITLE, mMovieDataArray.getJSONObject(position)
+                                            .getString("original_title"));
+                            movieDetailActivity.putExtra(
+                                    POSTER_PATH, mMovieDataArray.getJSONObject(position)
+                                            .getString("poster_path"));
+                            movieDetailActivity.putExtra(
+                                    OVERVIEW, mMovieDataArray.getJSONObject(position)
+                                            .getString("overview"));
+                            movieDetailActivity.putExtra(
+                                    VOTE_AVERAGE, mMovieDataArray.getJSONObject(position)
+                                            .getString("vote_average"));
+                            movieDetailActivity.putExtra(
+                                    RELEASE_DATE, mMovieDataArray.getJSONObject(position)
+                                            .getString("release_date"));
                         } catch (JSONException e) {
                             Log.e(LOG_TAG, e.getMessage(), e);
                             e.printStackTrace();
@@ -281,7 +328,9 @@ public class MainActivityFragment extends Fragment {
         ContentResolver resolver = getActivity().getContentResolver();
 
         mCursor = resolver.query(MovieContract.MovieTable.CONTENT_URI,
-                new String[]{MovieContract.MovieTable._ID, MovieContract.MovieTable.COLUMN_MOVIE_ID, MovieContract.MovieTable.COLUMN_POSTER_PATH},
+                new String[]{MovieContract.MovieTable._ID,
+                        MovieContract.MovieTable.COLUMN_MOVIE_ID,
+                        MovieContract.MovieTable.COLUMN_POSTER_PATH},
                 null,
                 null,
                 null);

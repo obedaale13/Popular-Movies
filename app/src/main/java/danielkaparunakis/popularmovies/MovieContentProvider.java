@@ -15,6 +15,7 @@ import android.text.TextUtils;
 
 /**
  * Created by DanielKaparunakis on 3/15/16.
+ * Provides a ContentProvider interface to the favorite movies database.
  */
 public class MovieContentProvider extends ContentProvider {
 
@@ -95,15 +96,6 @@ public class MovieContentProvider extends ContentProvider {
         }
     }
 
-    private Uri getUriforID(long id, Uri uri) {
-        if (id > 0) {
-            Uri itemUri = ContentUris.withAppendedId(uri,id);
-            getContext().getContentResolver().notifyChange(itemUri, null);
-            return itemUri;
-        }
-        return null;
-    }
-
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         SQLiteDatabase db = mHelper.getWritableDatabase();
@@ -162,5 +154,14 @@ public class MovieContentProvider extends ContentProvider {
                 getContext().getContentResolver(),
                 uri);
         return cursor;
+    }
+
+    private Uri getUriforID(long id, Uri uri) {
+        if (id > 0) {
+            Uri itemUri = ContentUris.withAppendedId(uri,id);
+            getContext().getContentResolver().notifyChange(itemUri, null);
+            return itemUri;
+        }
+        return null;
     }
 }

@@ -1,6 +1,8 @@
 package danielkaparunakis.popularmovies;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -15,6 +17,7 @@ import java.util.List;
 
 /**
  * Created by DanielKaparunakis on 12/17/15.
+ * Class that serves as an adapter for images to be used a Gridview layout.
  */
 public class ImageAdapter extends BaseAdapter {
 
@@ -58,17 +61,24 @@ public class ImageAdapter extends BaseAdapter {
 
         //ImageView parameters
         ImageView imageView;
+        DisplayMetrics metrics = Resources.getSystem().getDisplayMetrics();
+
+        //Use the gridview width as the image width and get the height from the PosterSizeProvider
+        //class
         if(convertView == null) {
             imageView = new ImageView(mContext);
-            imageView.setLayoutParams(new GridView.LayoutParams(500, 750));
-            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setLayoutParams(new GridView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    PosterSizeProvider.getPosterHeight(metrics.density)));
+            imageView.setScaleType(ImageView.ScaleType.FIT_XY);
         } else {
             imageView = (ImageView) convertView;
         }
 
         //Use of Picasso library to load, cache & display images, only works if the path is not null
         //which the API returns sometimes
-        final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w500";
+        final String POSTER_FULL_PATH = "http://image.tmdb.org/t/p/w" +
+                Integer.toString(PosterSizeProvider.getPosterWidth(metrics.density));
         if (!mMoviePosterPaths.get(position).equals(null)){
             if (mIsLocal){
                 Picasso.with(mContext)

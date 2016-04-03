@@ -14,6 +14,7 @@ import android.os.Environment;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.ShareActionProvider;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -47,48 +48,52 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
+/**
+ * Displays specific data for a chosen movie
+ */
 public class MovieDetailActivityFragment extends Fragment {
-    
+
     private final String MOVIE_ID            = "id";
     private final String ORIGINAL_TITLE      = "original_title";
     private final String POSTER_PATH         = "poster_path";
     private final String OVERVIEW            = "overview";
     private final String VOTE_AVERAGE        = "vote_average";
     private final String RELEASE_DATE        = "release_date";
-    private final String POSTER_FULL_PATH    = "http://image.tmdb.org/t/p/w500";
     private final String MAX_VOTE_AVERAGE    = "/10";
     private final String TRAILER_REVIEW_LIST = "TrailerReviewArrayListKey";
     private final String LOG_TAG             = MovieDetailActivityFragment.class.getSimpleName();
 
+    private String mPosterFullPath           = "http://image.tmdb.org/t/p/w";
     boolean mIsFavorite;
     ImageView mMovieThumbnail;
     private Cursor mMovieDataCursor;
     private ArrayList<String> mMovieTrailerReviewDataList = new ArrayList<String>();
     private ShareActionProvider mShareActionProvider;
-    String mOriginalTitle;
-    String mPosterPath;
-    String mOverview;
-    String mReleaseDate;
-    String mVoteAverage;
-    String mMovieID;
-
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (mMovieDataCursor != null){
-            mMovieDataCursor.close();
-        }
-    }
+    private String mOriginalTitle;
+    private String mPosterPath;
+    private String mOverview;
+    private String mReleaseDate;
+    private String mVoteAverage;
+    private String mMovieID;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Completes the poster path to be loaded from the internet with the appropriate resolution
+        // based on the density of the device.
+        DisplayMetrics metrics = new DisplayMetrics();
+        getActivity().getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        mPosterFullPath = mPosterFullPath +
+                Integer.toString(PosterSizeProvider.getPosterWidth(metrics.density));
+
+        // If the bundle has data, meaning we have a tablet and the master/detail flow, go ahead
+        // and pull the data from the bundle.
         Bundle bundle = this.getArguments();
         if (bundle != null) {
             mMovieID = bundle.getString(MOVIE_ID);
             mOriginalTitle = bundle.getString(ORIGINAL_TITLE);
-            mPosterPath = POSTER_FULL_PATH + bundle.getString(POSTER_PATH);
+            mPosterPath = mPosterFullPath + bundle.getString(POSTER_PATH);
             mOverview = bundle.getString(OVERVIEW);
             mReleaseDate = bundle.getString(RELEASE_DATE);
             mVoteAverage = bundle.getString(VOTE_AVERAGE);
@@ -118,6 +123,8 @@ public class MovieDetailActivityFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        // Hard to set in the fragment itself, so it was set here instead.
         ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(mOriginalTitle);
     }
 
@@ -149,10 +156,10 @@ public class MovieDetailActivityFragment extends Fragment {
         TextView reviews = (TextView) rootView.findViewById(R.id.textview_review);
 
         // If the movie is found in the database, pull all the data from the database, otherwise
-        // check if there was data saved in the savedInstanceBundle list, and use that or
+        // check if there was data saved in the savedInstanceBundle list, or bundle for a tablet, and use that or
         // pull all the data from the intent and then make the network call to obtain trailer &
         // review data. In the rare case that there is no database data or network connection or API,
-        // completely hide all views and tell user to connect to the internet
+        // completely hide all views and tell user to connect to the internet.
         if (mIsFavorite){
             mOriginalTitle = mMovieDataCursor.getString(2);
             mPosterPath = mMovieDataCursor.getString(3);
@@ -163,13 +170,13 @@ public class MovieDetailActivityFragment extends Fragment {
             new FetchDetailMovieData().execute(mMovieID);
         } else if (!mMovieTrailerReviewDataList.isEmpty() && movieDetailActivity.hasExtra(ORIGINAL_TITLE)){
             mOriginalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
-            mPosterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
+            mPosterPath = mPosterFullPath + movieDetailActivity.getStringExtra(POSTER_PATH);
             mOverview = movieDetailActivity.getStringExtra(OVERVIEW);
             mReleaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
             mVoteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
         } else if (ConnectivityStatus.isOnline()){
             mOriginalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
-            mPosterPath = POSTER_FULL_PATH + movieDetailActivity.getStringExtra(POSTER_PATH);
+            mPosterPath = mPosterFullPath + movieDetailActivity.getStringExtra(POSTER_PATH);
             mOverview = movieDetailActivity.getStringExtra(OVERVIEW);
             mReleaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
             mVoteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
@@ -197,13 +204,14 @@ public class MovieDetailActivityFragment extends Fragment {
             youtubeButton.setVisibility(View.INVISIBLE);
         }
 
-        // This block updates all the views with corresponding movie data using the the variables
-        // initialized either with the data in the database or with the data coming from the intent.
-
+        //Set image thumbnail size using data provided by the PosterSizeProvider class & based of
+        //the density of the device
+        DisplayMetrics metrics = new DisplayMetrics();
+        getActivity().getWindowManager().getDefaultDisplay().getMetrics(metrics);
         mMovieThumbnail = (ImageView) rootView.findViewById(R.id.image_movie_thumbnail);
-        mMovieThumbnail.setMaxHeight(750);
-        mMovieThumbnail.setMaxWidth(500);
-        mMovieThumbnail.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        mMovieThumbnail.setMaxHeight(PosterSizeProvider.getPosterHeight(metrics.density));
+        mMovieThumbnail.setMaxWidth(PosterSizeProvider.getPosterWidth(metrics.density));
+        mMovieThumbnail.setScaleType(ImageView.ScaleType.FIT_XY);
 
         // If the movie is in the database, pull the file that was saved, otherwise load from the
         // internet using Picasso.
@@ -259,7 +267,8 @@ public class MovieDetailActivityFragment extends Fragment {
             public void onClick(View v) {
                 if(favoriteCheckbox.isChecked()){
                     ContentValues contentValues = new ContentValues();
-                    Bitmap b = Bitmap.createBitmap(mMovieThumbnail.getWidth(), mMovieThumbnail.getHeight(), Bitmap.Config.ARGB_8888);
+                    Bitmap b = Bitmap.createBitmap(mMovieThumbnail.getWidth(), mMovieThumbnail.getHeight(),
+                            Bitmap.Config.ARGB_8888);
                     Canvas canvas = new Canvas(b);
                     mMovieThumbnail.draw(canvas);
                     OutputStream fOut;
@@ -328,6 +337,14 @@ public class MovieDetailActivityFragment extends Fragment {
         });
 
         return rootView;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mMovieDataCursor != null){
+            mMovieDataCursor.close();
+        }
     }
 
     private Intent createShareTrailerIntent() {
@@ -470,7 +487,8 @@ public class MovieDetailActivityFragment extends Fragment {
 
             // Update these views now with the freshly downloaded data
             if(mMovieTrailerReviewDataList.get(1) != null) {
-                reviews.setText("By " + mMovieTrailerReviewDataList.get(1) + "\n\n" + mMovieTrailerReviewDataList.get(2));
+                reviews.setText("By " + mMovieTrailerReviewDataList.get(1) +
+                        "\n\n" + mMovieTrailerReviewDataList.get(2));
             } else {
                 reviews.setText("No reviews available");
             }

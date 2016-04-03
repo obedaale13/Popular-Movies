@@ -6,6 +6,7 @@ import android.provider.BaseColumns;
 
 /**
  * Created by DanielKaparunakis on 3/15/16.
+ * Contract class designed to make the use of the content provider & database helper classes easier.
  */
 public class MovieContract {
 
