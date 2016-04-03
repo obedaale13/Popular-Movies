@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="danielkaparunakis.popularmovies.MovieDetailActivity"
-    tools:showIn="@layout/activity_movie_detail">
+    android:layout_height="match_parent">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -52,7 +48,6 @@
             android:layout_alignLeft="@+id/text_vote_average"
             android:layout_below="@+id/text_vote_average"
             android:layout_toRightOf="@id/image_movie_thumbnail"
-            android:onClick="onFavoriteClicked"
             android:text="@string/button_label_mark_as_favorite" />
 
         <View
@@ -80,7 +75,6 @@
             android:layout_below="@+id/textview_trailers_label"
             android:layout_marginBottom="16dp"
             android:clickable="true"
-            android:onClick="onYoutubeClicked"
             android:src="@drawable/btn_youtube_play" />
 
         <View
