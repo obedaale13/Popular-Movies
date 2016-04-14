@@ -83,10 +83,14 @@ public class ImageAdapter extends BaseAdapter {
             if (mIsLocal){
                 Picasso.with(mContext)
                         .load(new File(mMoviePosterPaths.get(position)))
+                        .error(R.drawable.themoviedb_logo)
+                        .placeholder(R.drawable.themoviedb_logo)
                         .into(imageView);
             } else {
                 Picasso.with(mContext)
                         .load(POSTER_FULL_PATH + mMoviePosterPaths.get(position))
+                        .error(R.drawable.themoviedb_logo)
+                        .placeholder(R.drawable.themoviedb_logo)
                         .into(imageView);
             }
         }

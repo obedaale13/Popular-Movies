@@ -98,6 +98,7 @@ public class MovieDetailActivityFragment extends Fragment {
             mReleaseDate = bundle.getString(RELEASE_DATE);
             mVoteAverage = bundle.getString(VOTE_AVERAGE);
         }
+
         setHasOptionsMenu(true);
     }
 
@@ -218,6 +219,8 @@ public class MovieDetailActivityFragment extends Fragment {
         if (mIsFavorite){
             Picasso.with(getActivity())
                     .load(new File(mPosterPath))
+                    .error(R.drawable.themoviedb_logo)
+                    .placeholder(R.drawable.themoviedb_logo)
                     .into(mMovieThumbnail);
         } else if (mPosterPath.isEmpty()){
             Toast.makeText(getActivity(), "The movie data is no longer stored offline and you don't have " +
@@ -226,6 +229,8 @@ public class MovieDetailActivityFragment extends Fragment {
         } else {
             Picasso.with(getActivity())
                     .load(mPosterPath)
+                    .error(R.drawable.themoviedb_logo)
+                    .placeholder(R.drawable.themoviedb_logo)
                     .into(mMovieThumbnail);
         }
 
@@ -326,7 +331,8 @@ public class MovieDetailActivityFragment extends Fragment {
                     Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
                             Uri.parse("https://www.youtube.com/watch?v=" + mMovieDataCursor.getString(7)));
                     startActivity(youtubeIntent);
-                } else if (!mMovieTrailerReviewDataList.isEmpty()) {
+                } else if (!mMovieTrailerReviewDataList.isEmpty() &&
+                        mMovieTrailerReviewDataList.get(0) != null) {
                     Intent youtubeIntent = new Intent(Intent.ACTION_VIEW,
                             Uri.parse("https://www.youtube.com/watch?v=" + mMovieTrailerReviewDataList.get(0)));
                     startActivity(youtubeIntent);
@@ -494,7 +500,10 @@ public class MovieDetailActivityFragment extends Fragment {
             }
 
             // Update the Share Action Provider now with the freshly obtained data
-            mShareActionProvider.setShareIntent(createShareTrailerIntent());
+            if(mShareActionProvider != null){
+                mShareActionProvider.setShareIntent(createShareTrailerIntent());
+            }
+
 
         }
 
