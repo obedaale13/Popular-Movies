@@ -134,7 +134,7 @@ public class MainActivityFragment extends Fragment {
         //Determine the number of columns to show in the gridview with sizes. If it is a tablet,
         //use the size for 4 columns but only display two. If it is a phone, display 2 or 4,
         //depending on device orientation.
-        if (metrics.widthPixels / metrics.density > 600) {
+        if (metrics.widthPixels / metrics.density > 650) {
             MoviePosterGrid.setColumnWidth(metrics.widthPixels/4);
             MoviePosterGrid.setNumColumns(2);
         } else {
@@ -370,7 +370,7 @@ public class MainActivityFragment extends Fragment {
                     .appendPath(BUILDER_PATH_1)
                     .appendPath(BUILDER_PATH_2)
                     .appendPath(params[0])
-                    .appendQueryParameter(APIKEY_PARAM, ""); //Your API KEY goes here
+                    .appendQueryParameter(APIKEY_PARAM, "40814974175086b575caa98c32c2ead3"); //Your API KEY goes here
 
             //Built URL stored in a string
             String builtURL = builder.build().toString();

@@ -12,7 +12,7 @@ public class PosterSizeProvider {
             return 342;
         } else if (density == 3.0){
             return 500;
-        } else if (density == 4.0){
+        } else if (density == 3.5){
             return 780;
         } else {
             return 342;
@@ -24,7 +24,7 @@ public class PosterSizeProvider {
             return 513;
         } else if (density == 3.0){
             return 750;
-        } else if (density == 4.0){
+        } else if (density == 3.5){
             return 1170;
         } else {
             return 513;
