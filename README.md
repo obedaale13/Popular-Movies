@@ -37,7 +37,7 @@ With the exception of Picasso, I used all standard Google APIs. I used ASyncTask
 
 ## License
 
-Copyright 2016 by Daniel Kaparunakis
+Copyright 2016 Daniel Kaparunakis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
