@@ -27,7 +27,7 @@ Checking connectivity... done.
 
 For image caching, a quick [Android Arsenal](https://android-arsenal.com/) search led me to [Picasso](https://github.com/square/picasso), maintained by Square, & [Glide](https://github.com/bumptech/glide), maintained by Bumptech. I wanted something simple & light so I picked Picasso. There are a couple of more libraries worth a look as well, for that I recommend this [StackOverflow](http://stackoverflow.com/questions/29363321/picasso-v-s-imageloader-v-s-fresco-vs-glide) link that compares all of them.
 
-Other than Picasso, I used all standard Google APIs. I used ASyncTask for network calls & I used a content provider for all database operations.
+With the exception of Picasso, I used all standard Google APIs. I used ASyncTask for network calls & I used a content provider for all database operations.
 
 ## Future Updates
 
@@ -39,17 +39,17 @@ Other than Picasso, I used all standard Google APIs. I used ASyncTask for networ
 
 Copyright 2016 by Daniel Kaparunakis
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 
 
