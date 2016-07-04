@@ -9,7 +9,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
-import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
@@ -32,13 +31,7 @@ public class MovieContentProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mHelper = MovieDatabaseHelper.getInstance(ApplicationContextGetter.getAppContext());
-            }
-        }, 500);
+        mHelper = MovieDatabaseHelper.getInstance(getContext().getApplicationContext());
         return true;
     }
 

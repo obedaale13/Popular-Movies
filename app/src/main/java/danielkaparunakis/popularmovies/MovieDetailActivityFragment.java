@@ -167,7 +167,7 @@ public class MovieDetailActivityFragment extends Fragment {
             mOverview = mMovieDataCursor.getString(4);
             mReleaseDate = mMovieDataCursor.getString(6);
             mVoteAverage = mMovieDataCursor.getString(5) + MAX_VOTE_AVERAGE;
-        } else if (movieDetailActivity.getStringExtra(MOVIE_ID) == null && ConnectivityStatus.isOnline() ){
+        } else if (movieDetailActivity.getStringExtra(MOVIE_ID) == null && ConnectivityStatus.isOnline(getActivity()) ){
             new FetchDetailMovieData().execute(mMovieID);
         } else if (!mMovieTrailerReviewDataList.isEmpty() && movieDetailActivity.hasExtra(ORIGINAL_TITLE)){
             mOriginalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
@@ -175,7 +175,7 @@ public class MovieDetailActivityFragment extends Fragment {
             mOverview = movieDetailActivity.getStringExtra(OVERVIEW);
             mReleaseDate = movieDetailActivity.getStringExtra(RELEASE_DATE);
             mVoteAverage = movieDetailActivity.getStringExtra(VOTE_AVERAGE) + MAX_VOTE_AVERAGE;
-        } else if (ConnectivityStatus.isOnline()){
+        } else if (ConnectivityStatus.isOnline(getActivity())){
             mOriginalTitle = movieDetailActivity.getStringExtra(ORIGINAL_TITLE);
             mPosterPath = mPosterFullPath + movieDetailActivity.getStringExtra(POSTER_PATH);
             mOverview = movieDetailActivity.getStringExtra(OVERVIEW);

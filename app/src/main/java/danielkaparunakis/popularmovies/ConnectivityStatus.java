@@ -10,8 +10,8 @@ import android.net.NetworkInfo;
  */
 public class ConnectivityStatus {
 
-    public static boolean isOnline() {
-        ConnectivityManager cm = (ConnectivityManager) ApplicationContextGetter.getAppContext()
+    public static boolean isOnline(Context context) {
+        ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext()
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) {
             return false;

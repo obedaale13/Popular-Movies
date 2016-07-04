@@ -8,7 +8,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -178,23 +177,16 @@ public class MainActivityFragment extends Fragment {
                 mImageAdapter.notifyDataSetInvalidated();
             }
 
-        } else if (ConnectivityStatus.isOnline()){
+        } else if (ConnectivityStatus.isOnline(getActivity())){
             //Launch default API call
             new FetchMovieDataTask().execute(DEFAULT_API_CALL);
             mSortedByFavorite = false;
         } else {
-            Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mImageAdapter.setLocalFileFlag(true);
-                    favoriteMovies();
-                    mSortedByFavorite = true;
-                    mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
-                    mImageAdapter.notifyDataSetInvalidated();
-                }
-            }, 550);
-
+            mImageAdapter.setLocalFileFlag(true);
+            favoriteMovies();
+            mSortedByFavorite = true;
+            mImageAdapter.setmMoviePosterPaths(mMoviePosterPaths);
+            mImageAdapter.notifyDataSetInvalidated();
         }
         MoviePosterGrid.setAdapter(mImageAdapter);
 
