@@ -10,6 +10,7 @@ android {
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
+        buildConfigField("String", "THEMOVIEDB_API_KEY", THEMOVIEDB_API_KEY)
     }
     buildTypes {
         release {

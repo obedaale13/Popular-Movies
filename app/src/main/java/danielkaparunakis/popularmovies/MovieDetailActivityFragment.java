@@ -412,7 +412,7 @@ public class MovieDetailActivityFragment extends Fragment {
                     .appendPath(BUILDER_PATH_1)
                     .appendPath(BUILDER_PATH_2)
                     .appendPath(params[0])
-                    .appendQueryParameter(APIKEY_PARAM, "40814974175086b575caa98c32c2ead3")
+                    .appendQueryParameter(APIKEY_PARAM, BuildConfig.THEMOVIEDB_API_KEY)
                     .appendQueryParameter(TRAILERS_REVIEWS, "reviews,trailers");
 
             //Built URL stored in a string
