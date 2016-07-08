@@ -23,7 +23,13 @@ Resolving deltas: 100% (162/162), done.
 Checking connectivity... done.
 ```
 
-## Design Decisions
+This app uses the [TheMovieDB API](https://www.themoviedb.org/documentation/api) so it is required to obtain an API key by creating an account at [TheMovieDB](www.themoviedb.org) & requesting one. The API key goes in the **gradle.properties** file as a value for the variable **THEMOVIEDB_API_KEY**. For instance:
+
+```
+THEMOVIEDB_API_KEY = "qwertyuio123"
+```
+
+## Libraries Used
 
 For image caching, a quick [Android Arsenal](https://android-arsenal.com/) search led me to [Picasso](https://github.com/square/picasso), maintained by Square, & [Glide](https://github.com/bumptech/glide), maintained by Bumptech. I wanted something simple & light so I picked Picasso. There are a couple of more libraries worth a look as well, for that I recommend this [StackOverflow](http://stackoverflow.com/questions/29363321/picasso-v-s-imageloader-v-s-fresco-vs-glide) link that compares all of them.
 
